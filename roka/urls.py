@@ -32,6 +32,9 @@ urlpatterns = [
     path('admin_roka/', include('admin_roka.urls')),
     
     path('usuarios/', include('usuarios.urls')),
-    
-    path("__reload__/", include("django_browser_reload.urls")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+if getattr(settings, 'ENABLE_BROWSER_RELOAD', False):
+    urlpatterns.append(path("__reload__/", include("django_browser_reload.urls")))
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

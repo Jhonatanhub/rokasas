@@ -969,96 +969,6 @@
     border-width: 0;
   }
   @layer daisyui.l1.l2.l3 {
-    .checkbox {
-      border: var(--border) solid var(--input-color, var(--color-base-content));
-      position: relative;
-      display: inline-block;
-      flex-shrink: 0;
-      cursor: pointer;
-      appearance: none;
-      border-radius: var(--radius-selector);
-      padding: 0.25rem;
-      vertical-align: middle;
-      color: var(--color-base-content);
-      box-shadow: 0 1px oklch(0% 0 0 / calc(var(--depth) * 0.1)) inset, 0 0 #0000 inset, 0 0 #0000;
-      transition: background-color 0.2s, box-shadow 0.2s;
-      --size: calc(var(--size-selector, 0.25rem) * 6);
-      width: var(--size);
-      height: var(--size);
-      background-size: auto, calc(var(--noise) * 100%);
-      background-image: none, var(--fx-noise);
-    }
-    @supports (color: color-mix(in lab, red, red)) {
-      .checkbox {
-        border: var(--border) solid var(--input-color, color-mix(in oklab, var(--color-base-content) 20%, #0000));
-      }
-    }
-    .checkbox:before {
-      --tw-content: "";
-      content: var(--tw-content);
-      display: block;
-      width: 100%;
-      height: 100%;
-      rotate: 45deg;
-      background-color: currentcolor;
-      opacity: 0%;
-      transition: clip-path 0.3s, opacity 0.1s, rotate 0.3s, translate 0.3s;
-      transition-delay: 0.1s;
-      clip-path: polygon(20% 100%, 20% 80%, 50% 80%, 50% 80%, 70% 80%, 70% 100%);
-      box-shadow: 0px 3px 0 0px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset;
-      font-size: 1rem;
-      line-height: 0.75;
-    }
-    .checkbox:focus-visible {
-      outline: 2px solid var(--input-color, currentColor);
-      outline-offset: 2px;
-    }
-    .checkbox:checked, .checkbox[aria-checked="true"] {
-      background-color: var(--input-color, #0000);
-      box-shadow: 0 0 #0000 inset, 0 8px 0 -4px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset, 0 1px oklch(0% 0 0 / calc(var(--depth) * 0.1));
-    }
-    .checkbox:checked:before, .checkbox[aria-checked="true"]:before {
-      clip-path: polygon(20% 100%, 20% 80%, 50% 80%, 50% 0%, 70% 0%, 70% 100%);
-      opacity: 100%;
-    }
-    @media (forced-colors: active) {
-      .checkbox:checked:before, .checkbox[aria-checked="true"]:before {
-        rotate: 0deg;
-        background-color: transparent;
-        --tw-content: "✔︎";
-        clip-path: none;
-      }
-    }
-    @media print {
-      .checkbox:checked:before, .checkbox[aria-checked="true"]:before {
-        rotate: 0deg;
-        background-color: transparent;
-        --tw-content: "✔︎";
-        clip-path: none;
-      }
-    }
-    .checkbox:indeterminate {
-      background-color: var(--input-color, var(--color-base-content) );
-    }
-    @supports (color: color-mix(in lab, red, red)) {
-      .checkbox:indeterminate {
-        background-color: var(--input-color, color-mix(in oklab, var(--color-base-content) 20%, #0000) );
-      }
-    }
-    .checkbox:indeterminate:before {
-      rotate: 0deg;
-      opacity: 100%;
-      translate: 0 -35%;
-      clip-path: polygon(20% 100%, 20% 80%, 50% 80%, 50% 80%, 80% 80%, 80% 100%);
-    }
-  }
-  @layer daisyui.l1.l2 {
-    .checkbox:disabled {
-      cursor: not-allowed;
-      opacity: 20%;
-    }
-  }
-  @layer daisyui.l1.l2.l3 {
     .card {
       position: relative;
       display: flex;
@@ -1138,9 +1048,6 @@
   .-top-40 {
     top: calc(var(--spacing) * -40);
   }
-  .top-1\.5 {
-    top: calc(var(--spacing) * 1.5);
-  }
   .top-1\/2 {
     top: calc(1 / 2 * 100%);
   }
@@ -1152,9 +1059,6 @@
   }
   .right-0 {
     right: 0;
-  }
-  .right-1\.5 {
-    right: calc(var(--spacing) * 1.5);
   }
   .right-2\.5 {
     right: calc(var(--spacing) * 2.5);
@@ -1551,9 +1455,6 @@
   .h-2 {
     height: calc(var(--spacing) * 2);
   }
-  .h-2\.5 {
-    height: calc(var(--spacing) * 2.5);
-  }
   .h-4 {
     height: calc(var(--spacing) * 4);
   }
@@ -1625,9 +1526,6 @@
   }
   .w-1\.5 {
     width: calc(var(--spacing) * 1.5);
-  }
-  .w-2\.5 {
-    width: calc(var(--spacing) * 2.5);
   }
   .w-4 {
     width: calc(var(--spacing) * 4);
@@ -1925,9 +1823,6 @@
   }
   .overflow-y-auto {
     overflow-y: auto;
-  }
-  .rounded {
-    border-radius: 0.25rem;
   }
   .rounded-2xl {
     border-radius: var(--radius-2xl);
@@ -2860,11 +2755,6 @@
     }
   }
   @media (hover: hover) {
-    .group-hover\:text-slate-800:is(:where(.group):hover *) {
-      color: var(--color-slate-800);
-    }
-  }
-  @media (hover: hover) {
     .group-hover\:opacity-75:is(:where(.group):hover *) {
       opacity: 75%;
     }
@@ -2977,11 +2867,6 @@
     }
   }
   @media (hover: hover) {
-    .hover\:text-\[\#4fbfb4\]:hover {
-      color: #4fbfb4;
-    }
-  }
-  @media (hover: hover) {
     .hover\:text-red-500:hover {
       color: var(--color-red-500);
     }
@@ -3054,9 +2939,6 @@
   }
   .focus\:ring-\[\#4FBFB4\]\/20:focus {
     --tw-ring-color: color-mix(in oklab, #4FBFB4 20%, transparent);
-  }
-  .focus\:ring-\[\#4fbfb4\]:focus {
-    --tw-ring-color: #4fbfb4;
   }
   .focus\:ring-\[\#4fbfb4\]\/15:focus {
     --tw-ring-color: color-mix(in oklab, #4fbfb4 15%, transparent);

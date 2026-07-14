@@ -392,6 +392,7 @@
     const IMAGE_QUALITY = 0.75;
     let reconocimiento = null;
     let idCampoActivo = null;   
+    let fallbackRestartTimeout = null;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -408,19 +409,64 @@
             
             const textarea = document.getElementById(idCampoActivo);
             if (textarea) {
-                // Añade el texto al valor actual espaciándolo correctamente
-                textarea.value += (textarea.value ? " " : "") + textoDictado;
+                // MEJORA: Insertar en la posición del cursor (no siempre al final)
+                const startPos = textarea.selectionStart;
+                const endPos = textarea.selectionEnd;
+                const valOriginal = textarea.value;
+
+                // Capitalizar la primera letra si inicia el párrafo, sigue a un punto o está vacío
+                let textoFinal = textoDictado.trim();
+                const textoPrevio = valOriginal.substring(0, startPos).trim();
+                if (startPos === 0 || textoPrevio.endsWith('.') || textoPrevio === '') {
+                    textoFinal = textoFinal.charAt(0).toUpperCase() + textoFinal.slice(1);
+                } else {
+                    textoFinal = textoFinal.charAt(0).toLowerCase() + textoFinal.slice(1);
+                }
+
+                // Generar los espacios adecuados alrededor del texto insertado
+                const espacioAntes = (startPos > 0 && !valOriginal.charAt(startPos - 1).match(/\s/)) ? " " : "";
+                const espacioDespues = (endPos < valOriginal.length && !valOriginal.charAt(endPos).match(/\s/)) ? " " : "";
+
+                textarea.value = valOriginal.substring(0, startPos) + 
+                                 espacioAntes + 
+                                 textoFinal + 
+                                 espacioDespues + 
+                                 valOriginal.substring(endPos);
+
+                // Colocar el cursor justo después de la inserción
+                const nuevaPosCursor = startPos + espacioAntes.length + textoFinal.length;
+                textarea.selectionStart = textarea.selectionEnd = nuevaPosCursor;
                 
-                // Si es el campo conclusión, dispara el evento de conteo por si tienes un listener
                 textarea.dispatchEvent(new Event('input'));
             }
         };
 
-        // Manejo del cierre inesperado o fin del dictado
+        // Manejo del cierre inesperado o fin del dictado (por pausas o silencio prolongado)
         reconocimiento.onend = () => {
+            // Si idCampoActivo sigue configurado, significa que se cortó por silencio involuntario
             if (idCampoActivo) {
-                cambiarEstiloBotón(idCampoActivo, false);
-                idCampoActivo = null;
+                fallbackRestartTimeout = setTimeout(() => {
+                    if (idCampoActivo) {
+                        try {
+                            reconocimiento.start();
+                        } catch (e) {
+                            cambiarEstiloBotón(idCampoActivo, false);
+                            idCampoActivo = null;
+                        }
+                    }
+                }, 400);
+            }
+        };
+
+        reconocimiento.onerror = (event) => {
+            console.error("Error de reconocimiento de voz:", event.error);
+            if (event.error === 'not-allowed') {
+                mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
+                if (idCampoActivo) {
+                    const idCampo = idCampoActivo;
+                    idCampoActivo = null;
+                    cambiarEstiloBotón(idCampo, false);
+                }
             }
         };
     } else {
@@ -430,25 +476,38 @@
     // Función para activar / desactivar el dictado
     function toggleDictado(idCampo) {
         if (!reconocimiento) {
-            alert("Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
+            mostrarToast('error', "Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
             return;
         }
 
-        // Si ya está escuchando el mismo campo, lo detiene
+        clearTimeout(fallbackRestartTimeout);
+
+        // Si ya está escuchando el mismo campo, lo detiene manualmente
         if (idCampoActivo === idCampo) {
+            const anteriorCampo = idCampoActivo;
+            idCampoActivo = null;
             reconocimiento.stop();
+            cambiarEstiloBotón(anteriorCampo, false);
+            mostrarToast('success', 'Micrófono desactivado.');
             return;
         }
 
         // Si está escuchando otro campo, detiene el anterior primero
         if (idCampoActivo) {
+            const anteriorCampo = idCampoActivo;
             reconocimiento.stop();
+            cambiarEstiloBotón(anteriorCampo, false);
         }
 
         // Activa el nuevo campo
         idCampoActivo = idCampo;
         cambiarEstiloBotón(idCampo, true);
-        reconocimiento.start();
+        try {
+            reconocimiento.start();
+            mostrarToast('success', 'Micrófono activo. Dicta ahora.');
+        } catch (e) {
+            console.warn("Speech recognition ya iniciado o fallido:", e);
+        }
     }
 
     // Cambia visualmente el botón para avisar que está escuchando
@@ -470,10 +529,11 @@
     // --- FUNCIÓN DE CORRECCIÓN DE ORTOGRAFÍA ---
     async function corregirTexto(idCampo) {
         const textarea = document.getElementById(idCampo);
+        if (!textarea) return;
         const textoOriginal = textarea.value.trim();
     
         if (!textoOriginal) {
-            alert("El campo está vacío, escribe o dicta algo primero.");
+            mostrarToast('error', "El campo está vacío, escribe o dicta algo primero.");
             return;
         }
     
@@ -488,8 +548,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Si requieres seguridad CSRF quita el @csrf_exempt de Django y descomenta:
-                    // 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : ''
                 },
                 body: JSON.stringify({ texto: textoOriginal })
             });
@@ -503,10 +562,18 @@
             
             // Lanzamos el evento input por si tienes contadores de caracteres activos
             textarea.dispatchEvent(new Event('input'));
+
+            // Notificación sobre los resultados de la corrección
+            const errores = data.erroresEncontrados || 0;
+            if (errores > 0) {
+                mostrarToast('success', `✨ Texto corregido. Se realizaron ${errores} correcciones.`);
+            } else {
+                mostrarToast('success', '✨ Tu texto no requiere correcciones. ¡Está excelente!');
+            }
     
         } catch (error) {
             console.error("Error:", error);
-            alert("No se pudo realizar la corrección en este momento.");
+            mostrarToast('error', "No se pudo realizar la corrección en este momento.");
         } finally {
             // Restaurar el botón
             boton.disabled = false;

@@ -234,7 +234,17 @@
         </div>
 
         <div class="rk-card p-6 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
-            <h3 class="text-base font-bold text-[#1f7ca5] border-b border-slate-100 pb-2 mb-3">Conclusión General del Período</h3>
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-3">
+                <h3 class="text-base font-bold text-[#1f7ca5]">Conclusión General del Período</h3>
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleDictado('inputConclusion')" id="btn-voz-inputConclusion" class="flex items-center gap-1 px-3 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                        🎤 <span>Dictar</span>
+                    </button>
+                    <button type="button" onclick="corregirTexto('inputConclusion')" class="flex items-center gap-1 px-3 py-1 text-xs font-medium text-white bg-[#4fbfb4] hover:bg-[#3ea399] rounded-lg transition-colors">
+                        ✨ Corregir
+                    </button>
+                </div>
+            </div>
             <p class="text-xs text-slate-400 mt-0.5">Este texto se incluirá en el PDF y en el cuerpo del correo enviado al cliente.</p>
             
             <textarea id="inputConclusion" rows="4" 
@@ -591,11 +601,204 @@
                 }
             } catch (err) {
                 mostrarToast('No se pudo conectar con el servidor.', 'error');
-            } finally {
-                btnGenerar.disabled = false;
-                btnGenerar.classList.remove('opacity-60');
-            }
         });
     });
+
+    //---------------      DICTADO POR VOZ Y CORRECCIÓN (MEJORADO)        ---------------------------------
+    let reconocimiento = null;
+    let idCampoActivo = null;
+    let fallbackRestartTimeout = null;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+        reconocimiento = new SpeechRecognition();
+        reconocimiento.lang = 'es-ES'; // Configurado para español
+        reconocimiento.continuous = true; // Permite pausas largas sin cortarse
+        reconocimiento.interimResults = false; // Solo devuelve texto definitivo
+
+        // Evento cuando detecta texto hablado
+        reconocimiento.onresult = (event) => {
+            const resultadoIndex = event.resultIndex;
+            const textoDictado = event.results[resultadoIndex][0].transcript;
+            
+            const textarea = document.getElementById(idCampoActivo);
+            if (textarea) {
+                // MEJORA: Insertar en la posición del cursor (no siempre al final)
+                const startPos = textarea.selectionStart;
+                const endPos = textarea.selectionEnd;
+                const valOriginal = textarea.value;
+
+                // Capitalizar la primera letra si inicia el párrafo, sigue a un punto o está vacío
+                let textoFinal = textoDictado.trim();
+                const textoPrevio = valOriginal.substring(0, startPos).trim();
+                if (startPos === 0 || textoPrevio.endsWith('.') || textoPrevio === '') {
+                    textoFinal = textoFinal.charAt(0).toUpperCase() + textoFinal.slice(1);
+                } else {
+                    textoFinal = textoFinal.charAt(0).toLowerCase() + textoFinal.slice(1);
+                }
+
+                // Generar los espacios adecuados alrededor del texto insertado
+                const espacioAntes = (startPos > 0 && !valOriginal.charAt(startPos - 1).match(/\s/)) ? " " : "";
+                const espacioDespues = (endPos < valOriginal.length && !valOriginal.charAt(endPos).match(/\s/)) ? " " : "";
+
+                textarea.value = valOriginal.substring(0, startPos) + 
+                                 espacioAntes + 
+                                 textoFinal + 
+                                 espacioDespues + 
+                                 valOriginal.substring(endPos);
+
+                // Colocar el cursor justo después de la inserción
+                const nuevaPosCursor = startPos + espacioAntes.length + textoFinal.length;
+                textarea.selectionStart = textarea.selectionEnd = nuevaPosCursor;
+                
+                textarea.dispatchEvent(new Event('input'));
+            }
+        };
+
+        // Manejo del cierre inesperado o fin del dictado (por pausas o silencio prolongado)
+        reconocimiento.onend = () => {
+            // Si idCampoActivo sigue configurado, significa que se cortó por silencio involuntario
+            if (idCampoActivo) {
+                fallbackRestartTimeout = setTimeout(() => {
+                    if (idCampoActivo) {
+                        try {
+                            reconocimiento.start();
+                        } catch (e) {
+                            cambiarEstiloBotón(idCampoActivo, false);
+                            idCampoActivo = null;
+                        }
+                    }
+                }, 400);
+            }
+        };
+
+        reconocimiento.onerror = (event) => {
+            console.error("Error de reconocimiento de voz:", event.error);
+            if (event.error === 'not-allowed') {
+                mostrarToast('Se requiere permiso del micrófono para dictar.', 'error');
+                if (idCampoActivo) {
+                    const idCampo = idCampoActivo;
+                    idCampoActivo = null;
+                    cambiarEstiloBotón(idCampo, false);
+                }
+            }
+        };
+    } else {
+        console.warn("Este navegador no soporta el reconocimiento de voz nativo.");
+    }
+
+    // Función para activar / desactivar el dictado
+    function toggleDictado(idCampo) {
+        if (!reconocimiento) {
+            mostrarToast("Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.", 'error');
+            return;
+        }
+
+        clearTimeout(fallbackRestartTimeout);
+
+        // Si ya está escuchando el mismo campo, lo detiene manualmente
+        if (idCampoActivo === idCampo) {
+            const anteriorCampo = idCampoActivo;
+            idCampoActivo = null;
+            reconocimiento.stop();
+            cambiarEstiloBotón(anteriorCampo, false);
+            mostrarToast('Micrófono desactivado.', 'success');
+            return;
+        }
+
+        // Si está escuchando otro campo, detiene el anterior primero
+        if (idCampoActivo) {
+            const anteriorCampo = idCampoActivo;
+            reconocimiento.stop();
+            cambiarEstiloBotón(anteriorCampo, false);
+        }
+
+        // Activa el nuevo campo
+        idCampoActivo = idCampo;
+        cambiarEstiloBotón(idCampo, true);
+        try {
+            reconocimiento.start();
+            mostrarToast('Micrófono activo. Dicta ahora.', 'success');
+        } catch (e) {
+            console.warn("Speech recognition ya iniciado o fallido:", e);
+        }
+    }
+
+    // Cambia visualmente el botón para avisar que está escuchando
+    function cambiarEstiloBotón(idCampo, estaEscuchando) {
+        const btn = document.getElementById(`btn-voz-${idCampo}`);
+        if (!btn) return;
+
+        if (estaEscuchando) {
+            btn.classList.remove('bg-slate-100', 'text-slate-600');
+            btn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+            btn.querySelector('span').innerText = 'Grabando...';
+        } else {
+            btn.classList.add('bg-slate-100', 'text-slate-600');
+            btn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+            btn.querySelector('span').innerText = 'Dictar';
+        }
+    }
+
+    // --- FUNCIÓN DE CORRECCIÓN DE ORTOGRAFÍA ---
+    async function corregirTexto(idCampo) {
+        const textarea = document.getElementById(idCampo);
+        if (!textarea) return;
+        const textoOriginal = textarea.value.trim();
+    
+        if (!textoOriginal) {
+            mostrarToast("El campo está vacío, escribe o dicta algo primero.", 'error');
+            return;
+        }
+    
+        // Cambiar estado del botón a "Procesando"
+        const boton = event.currentTarget;
+        const textoOriginalBoton = boton.innerHTML;
+        boton.disabled = true;
+        boton.innerHTML = `⏳ Corrigiendo...`;
+    
+        try {
+            const response = await fetch('/reportador/api/corregir-texto/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': (function(name) {
+                        const value = `; ${document.cookie}`;
+                        const parts = value.split(`; ${name}=`);
+                        if (parts.length === 2) return parts.pop().split(';').shift();
+                        return '';
+                    })('csrftoken')
+                },
+                body: JSON.stringify({ texto: textoOriginal })
+            });
+    
+            if (!response.ok) throw new Error('Error en el servidor');
+    
+            const data = await response.json();
+            
+            // Insertamos el texto corregido localmente por el backend
+            textarea.value = data.textoCorregido;
+            
+            // Lanzamos el evento input por si tienes contadores de caracteres activos
+            textarea.dispatchEvent(new Event('input'));
+
+            // Notificación sobre los resultados de la corrección
+            const errores = data.erroresEncontrados || 0;
+            if (errores > 0) {
+                mostrarToast(`✨ Texto corregido. Se realizaron ${errores} correcciones.`, 'success');
+            } else {
+                mostrarToast('✨ Tu texto no requiere correcciones. ¡Está excelente!', 'success');
+            }
+    
+        } catch (error) {
+            console.error("Error:", error);
+            mostrarToast("No se pudo realizar la corrección en este momento.", 'error');
+        } finally {
+            // Restaurar el botón
+            boton.disabled = false;
+            boton.innerHTML = textoOriginalBoton;
+        }
+    }
 </script>
 {% endblock %}

@@ -30,6 +30,10 @@ SECRET_KEY = 'django-insecure-ffp5-+4-22-w!_e46@8#1c=l*8lbusox=62crg2oirrgj55nxx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Habilitar/Deshabilitar la recarga automática del navegador en desarrollo (django-browser-reload)
+# Por defecto se establece en False para evitar recargas molestas durante el uso o carga de archivos.
+ENABLE_BROWSER_RELOAD = os.getenv('ENABLE_BROWSER_RELOAD', 'False').lower() == 'true'
+
 ALLOWED_HOSTS = ['*']
 
 
@@ -43,7 +47,6 @@ INSTALLED_APPS = [
     'tailwind',
     'theme',
     'sslserver',
-    'django_browser_reload',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,6 +54,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+if ENABLE_BROWSER_RELOAD:
+    INSTALLED_APPS.append('django_browser_reload')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -60,8 +66,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
+
+if ENABLE_BROWSER_RELOAD:
+    MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
 
 ROOT_URLCONF = 'roka.urls'
 
@@ -154,8 +162,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TAILWIND_APP_NAME = 'theme'
 
-NPM_BIN_PATH =  "/usr/bin/npm"
-#NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
+# NPM_BIN_PATH =  "/usr/bin/npm"
+NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
 
 LOGIN_URL = 'login'
 
