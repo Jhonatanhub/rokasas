@@ -1,0 +1,1142 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Inspección{% endblock %}
+
+{% block content %}
+
+<div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200/80 my-6">
+
+    <!-- Cabecera del Formulario con nuevo Degradado Corporativo -->
+    <div class="bg-gradient-to-r from-[#1f7ca5] to-[#4fbfb4] px-8 py-7">
+        <h1 class="text-2xl font-bold text-white tracking-wide text-center">
+            Informe Prestación Servicio
+        </h1>
+        <p class="text-white/80 mt-1.5 text-sm text-center">
+            Complete la información correspondiente a la inspección. Los campos marcados con <span
+                class="text-red-300 font-bold">*</span> son obligatorios.
+        </p>
+    </div>
+
+    <form action="{% url 'guardar_inspeccion' %}" method="POST" enctype="multipart/form-data" class="p-8 space-y-8"
+        id="inspeccionForm">
+        {% csrf_token %}
+
+        <!-- SECCIÓN 1: INFORMACIÓN GENERAL -->
+        <section aria-labelledby="general-info-title">
+            <h2 id="general-info-title"
+                class="text-lg font-bold text-[#1f7ca5] border-b-2 border-[#4fbfb4]/40 pb-2 mb-6 flex items-center gap-2">
+                <span>Información General</span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Fila 1 -->
+                <div>
+                    <label type="button" for="cliente_select" class="block text-sm font-semibold text-slate-700 mb-2">
+                        Cliente <span class="text-red-500">*</span>
+                    </label>
+                    <select id="cliente_select" placeholder="Escribe para buscar cliente..." class="w-full"></select>
+
+                    <input type="hidden" id="cliente_id" name="cliente_id" required>
+                </div>
+
+                <div>
+                    <label for="nit" class="block text-sm font-semibold text-slate-700 mb-2">
+                        NIT <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="nit" name="nit" required readonly
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-500 cursor-not-allowed focus:outline-none transition-all">
+                </div>
+
+                <!-- Fila 2 -->
+                <div>
+                    <label for="fecha" class="block text-sm font-semibold text-slate-700 mb-2">
+                        Fecha <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="fecha" name="fecha" required
+                        class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800">
+                </div>
+
+                <div>
+                    <label for="hora" class="block text-sm font-semibold text-slate-700 mb-2">
+                        Hora <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="hora" name="hora" required
+                        class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800">
+                </div>
+
+                <!-- Fila 3 -->
+                <div>
+                    <label for="administrador" class="block text-sm font-semibold text-slate-700 mb-2">
+                        Administrador
+                    </label>
+                    <input type="text" id="administrador" name="administrador" readonly
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-500 cursor-not-allowed focus:outline-none transition-all">
+                </div>
+
+                <!-- Fila 4 -->
+                <div class="md:col-span-2">
+                    <label for="supervisor" class="block text-sm font-semibold text-slate-700 mb-2">
+                        Supervisor <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="supervisor" name="supervisor" required value="Nicolas Gaviria Gonzalez"
+                        readonly
+                        class="w-full rounded-xl border border-slate-300 px-4 py-2.5 bg-slate-100 text-slate-700">
+                </div>
+
+                <!-- Fila 5 -->
+                <div class="md:col-span-2">
+                    <label for="correo" class="block text-sm font-semibold text-slate-700 mb-2">
+                        Correos Electrónicos Registrados <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="correo" name="correo" required readonly
+                        placeholder="Seleccione un cliente para cargar sus correos"
+                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-500 cursor-not-allowed focus:outline-none transition-all">
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: EVALUACIÓN TÉCNICA -->
+        <section aria-labelledby="evaluation-title">
+            <h2 id="evaluation-title" class="text-lg font-bold text-[#1f7ca5] border-b-2 border-[#4fbfb4]/40 pb-2 mb-6">
+                Evaluación Técnica
+            </h2>
+
+            <div id="evaluaciones-container" class="space-y-8"></div>
+        </section>
+
+        <!-- TEMPLATE: se clona por cada evaluación técnica agregada -->
+        <template id="evaluacion-template">
+            <div class="evaluacion-bloque relative rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-6">
+
+                <div class="flex items-center justify-between">
+                    <span class="evaluacion-numero text-sm font-bold text-[#1f7ca5] uppercase tracking-wide"></span>
+                    <button type="button"
+                        class="btn-eliminar-evaluacion hidden text-red-500 hover:text-red-700 text-sm font-semibold">
+                        Eliminar
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        Enfoque de la inspección <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        class="campo-enfoque-select w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800"
+                        required>
+                        <option value="">Seleccione una opción</option>
+                        <option value="Aseo y Limpieza">Aseo y Limpieza</option>
+                        <option value="Seguridad y Salud en el Trabajo">Seguridad y Salud en el Trabajo</option>
+                        <option value="Colaborador">Colaborador</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                    <input type="text"
+                        class="campo-enfoque-otro hidden mt-3 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800"
+                        placeholder="Especifique el enfoque...">
+                    <input type="hidden" class="campo-enfoque" name="enfoque[]" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        Concepto Técnico <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        class="campo-concepto-select w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800"
+                        required>
+                        <option value="">Seleccione una opción</option>
+                        <option value="Zonas comunes">Zonas comunes</option>
+                        <option value="Ascensores">Ascensores</option>
+                        <option value="Paredes">Paredes</option>
+                        <option value="Pasamanos">Pasamanos</option>
+                        <option value="Escalas">Escalas</option>
+                        <option value="Zonas verdes">Zonas verdes</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                    <input type="text"
+                        class="campo-concepto-otro hidden mt-3 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800"
+                        placeholder="Especifique el concepto técnico...">
+                    <input type="hidden" class="campo-concepto" name="concepto[]" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        Evidencias fotográficas y de video <span class="text-xs font-normal text-slate-500">(Imágenes
+                            optimizadas automáticamente. Haz clic en cualquier archivo para previsualizarlo)</span>
+                    </label>
+                    <div
+                        class="campo-evidencias-dropzone relative group mt-1 flex justify-center px-6 py-8 border-2 border-slate-300 border-dashed rounded-2xl hover:border-[#4fbfb4] hover:bg-slate-50/60 transition-all cursor-pointer shadow-sm">
+                        <div class="space-y-2 text-center">
+                            <div
+                                class="inline-flex p-3 rounded-xl bg-slate-100 group-hover:bg-[#4fbfb4]/10 text-slate-400 group-hover:text-[#4fbfb4] transition-colors">
+                                <svg class="h-8 w-8" stroke="currentColor" fill="none" viewBox="0 0 48 48"
+                                    aria-hidden="true">
+                                    <path
+                                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4-4m4-24h8m-4-4v8m-12 4h.02"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                            <div class="flex text-sm text-slate-600 justify-center">
+                                <span
+                                    class="relative rounded-md font-bold text-[#1f7ca5] group-hover:text-[#4fbfb4] transition-colors">
+                                    <span>Seleccionar archivos</span>
+                                    <input type="file" class="campo-evidencias-input sr-only" multiple
+                                        accept="image/*,video/*" onclick="event.stopPropagation()">
+                                </span>
+                                <p class="pl-1 text-slate-500">o tomar fotos</p>
+                            </div>
+                            <p class="campo-evidencias-helper text-xs text-slate-400 transition-colors">Imágenes (JPEG
+                                comprimido) | Videos hasta 50MB</p>
+                        </div>
+                    </div>
+                    <div
+                        class="campo-evidencias-preview grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-5 empty:mt-0 transition-all">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">
+                            Calificación <span class="text-red-500">*</span>
+                        </label>
+                        <input type="hidden" class="campo-calificacion" name="calificacion[]" required>
+                        <div class="space-y-3">
+                            <button type="button"
+                                class="calificacion-btn w-full flex items-center gap-4 rounded-xl border-2 border-green-200 bg-green-50 p-4 hover:shadow-md transition-all"
+                                data-value="Excelente">
+                                <span class="w-5 h-5 rounded-full bg-green-500"></span>
+                                <div class="text-left">
+                                    <p class="font-semibold text-green-700">Excelente</p>
+                                    <p class="text-xs text-green-600">Cumple completamente los criterios.</p>
+                                </div>
+                            </button>
+                            <button type="button"
+                                class="calificacion-btn w-full flex items-center gap-4 rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 hover:shadow-md transition-all"
+                                data-value="Regular">
+                                <span class="w-5 h-5 rounded-full bg-yellow-400"></span>
+                                <div class="text-left">
+                                    <p class="font-semibold text-yellow-700">Regular</p>
+                                    <p class="text-xs text-yellow-600">Requiere algunas mejoras.</p>
+                                </div>
+                            </button>
+                            <button type="button"
+                                class="calificacion-btn w-full flex items-center gap-4 rounded-xl border-2 border-red-200 bg-red-50 p-4 hover:shadow-md transition-all"
+                                data-value="Mala">
+                                <span class="w-5 h-5 rounded-full bg-red-500"></span>
+                                <div class="text-left">
+                                    <p class="font-semibold text-red-700">Mala</p>
+                                    <p class="text-xs text-red-600">Requiere intervención inmediata.</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-semibold text-slate-700">
+                                Observación <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <button type="button" 
+                                        class="btn-dictar-voz flex items-center gap-1 px-3 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                                    🎤 <span>Dictar</span>
+                                </button>
+                                <button type="button" 
+                                        class="btn-corregir-texto flex items-center gap-1 px-3 py-1 text-xs font-medium text-white bg-[#4fbfb4] hover:bg-[#3ea399] rounded-lg transition-colors">
+                                    ✨ Corregir
+                                </button>
+                            </div>
+                        </div>
+                        <textarea
+                            class="campo-nota w-full rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-slate-700 resize-none leading-relaxed focus:bg-white focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all"
+                            name="observacion[]" rows="8" required
+                            placeholder="Describa las novedades encontradas..."></textarea>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end pt-2 border-t border-slate-200">
+                    <button type="button"
+                        class="btn-agregar-evaluacion inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#4fbfb4]/10 text-[#1f7ca5] font-semibold text-sm hover:bg-[#4fbfb4]/20 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Agregar otra evaluación
+                    </button>
+                </div>
+
+            </div>
+
+        </template>
+
+        <!-- SECCIÓN 3: CONCLUSIÓN GENERAL (única, aplica a todas las evaluaciones) -->
+        <section aria-labelledby="conclusion-title" class="mt-6">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
+                <div class="flex justify-between items-center mb-3">
+                    <label for="conclusion" class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <svg class="w-5 h-5 text-[#1F7CA5]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                        </svg>
+                        Conclusión General <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="toggleDictado('conclusion')" id="btn-voz-conclusion" class="flex items-center gap-1 px-3 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                            🎤 <span>Dictar</span>
+                        </button>
+                        <button type="button" onclick="corregirTexto('conclusion')" class="flex items-center gap-1 px-3 py-1 text-xs font-medium text-white bg-[#4fbfb4] hover:bg-[#3ea399] rounded-lg transition-colors">
+                            ✨ Corregir
+                        </button>
+                    </div>
+                </div>
+                
+                <textarea id="conclusion" name="conclusion" rows="7" required
+                    placeholder="Resuma el resultado general de la inspección..."
+                    class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-slate-700 leading-relaxed resize-y focus:bg-white focus:border-[#4FBFB4] focus:ring-4 focus:ring-[#4FBFB4]/20 focus:outline-none transition-all"></textarea>
+                
+                <div class="mt-3 flex justify-between text-xs text-slate-500">
+                    <span>Incluya las recomendaciones finales y las acciones de seguimiento.</span>
+                    <span id="contadorConclusion">0 caracteres</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ACCIONES DEL FORMULARIO -->
+        <div class="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200">
+            <button type="reset"
+                class="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-800 active:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200/60 transition-all">
+                Limpiar todo
+            </button>
+
+            <!-- Botón primario utilizando el azul de marca y hover dinámico -->
+            <button type="submit"
+                class="w-full sm:w-auto px-8 py-3 rounded-xl bg-[#1f7ca5] text-white font-semibold hover:bg-[#1a688b] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-[#1f7ca5]/20 transition-all shadow-md shadow-[#1f7ca5]/10">
+                Guardar Inspección
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<div id="toast-backdrop" class="toast-backdrop"></div>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<div id="media-modal"
+    class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-0 sm:p-4 opacity-0 transition-opacity duration-300 ease-out"
+    role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+    <!-- Overlay elegante: nunca negro plano, degradado + blur -->
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/75 to-slate-900/80 backdrop-blur-md cursor-zoom-out"
+         onclick="cerrarMediaModal()"></div>
+
+    <div id="modal-content-wrapper" class="relative z-10 flex flex-col
+               w-auto max-w-[95%] h-auto max-h-[95vh]
+               bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden
+               shadow-[0_25px_60px_-15px_rgba(0,0,0,.45)] ring-1 ring-black/5
+               opacity-0 scale-95
+               transition-all duration-300 ease-out">
+
+        <!-- Header -->
+        <div class="h-16 flex-shrink-0 bg-gradient-to-r from-[#01A684] via-[#1f7ca5] to-[#4fbfb4] flex items-center justify-between px-5 sm:px-6 z-20">
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 id="modal-title" class="text-white font-bold text-base sm:text-lg leading-tight">Vista previa de evidencia</h2>
+                    <p id="modal-file-type" class="text-white/80 text-xs sm:text-sm">Contenido</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarMediaModal()"
+                aria-label="Cerrar"
+                class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white/5 hover:bg-red-500 border border-white/10 transition-all duration-200 flex items-center justify-center group">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Contenido -->
+        <div class="relative flex items-center justify-center flex-grow p-0 sm:p-2 overflow-hidden rounded-b-3xl bg-slate-50">
+
+            <!-- Loader elegante, sin negro -->
+            <div id="modal-loader" class="absolute inset-0 hidden flex-col items-center justify-center bg-white/90 backdrop-blur-sm z-30">
+                <div class="relative h-14 w-14">
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-[#01A684] border-t-transparent animate-spin"></div>
+                </div>
+                <span class="mt-4 text-slate-600 font-medium text-sm tracking-wide">Cargando evidencia...</span>
+            </div>
+
+            <img id="modal-image"
+                class="hidden w-auto h-auto max-w-full object-contain select-none"
+                alt="Previsualización" onload="modalLoader.classList.add('hidden')">
+
+            <div id="modal-video-container" class="hidden w-auto h-auto max-w-full flex items-center justify-center">
+                <video id="modal-player"
+                    class="w-auto h-auto max-w-full object-contain"
+                    controls playsinline onloadeddata="modalLoader.classList.add('hidden')">
+                </video>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    //---------------      EVIDENCIAS       ---------------------------------
+    let archivosEvidencia = [];
+    let formulario, mediaModal, modalImage, modalPlayer, modalContentWrapper, modalVideoContainer, modalLoader;
+    const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+    const IMAGE_MAX_WIDTH = 1200;
+    const IMAGE_QUALITY = 0.75;
+    let reconocimiento = null;
+    let idCampoActivo = null;   
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+        reconocimiento = new SpeechRecognition();
+        reconocimiento.lang = 'es-ES'; // Configurado para español
+        reconocimiento.continuous = true; // Permite pausas largas sin cortarse
+        reconocimiento.interimResults = false; // Solo devuelve texto definitivo
+
+        // Evento cuando detecta texto hablado
+        reconocimiento.onresult = (event) => {
+            const resultadoIndex = event.resultIndex;
+            const textoDictado = event.results[resultadoIndex][0].transcript;
+            
+            const textarea = document.getElementById(idCampoActivo);
+            if (textarea) {
+                // Añade el texto al valor actual espaciándolo correctamente
+                textarea.value += (textarea.value ? " " : "") + textoDictado;
+                
+                // Si es el campo conclusión, dispara el evento de conteo por si tienes un listener
+                textarea.dispatchEvent(new Event('input'));
+            }
+        };
+
+        // Manejo del cierre inesperado o fin del dictado
+        reconocimiento.onend = () => {
+            if (idCampoActivo) {
+                cambiarEstiloBotón(idCampoActivo, false);
+                idCampoActivo = null;
+            }
+        };
+    } else {
+        console.warn("Este navegador no soporta el reconocimiento de voz nativo.");
+    }
+
+    // Función para activar / desactivar el dictado
+    function toggleDictado(idCampo) {
+        if (!reconocimiento) {
+            alert("Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
+            return;
+        }
+
+        // Si ya está escuchando el mismo campo, lo detiene
+        if (idCampoActivo === idCampo) {
+            reconocimiento.stop();
+            return;
+        }
+
+        // Si está escuchando otro campo, detiene el anterior primero
+        if (idCampoActivo) {
+            reconocimiento.stop();
+        }
+
+        // Activa el nuevo campo
+        idCampoActivo = idCampo;
+        cambiarEstiloBotón(idCampo, true);
+        reconocimiento.start();
+    }
+
+    // Cambia visualmente el botón para avisar que está escuchando
+    function cambiarEstiloBotón(idCampo, estaEscuchando) {
+        const btn = document.getElementById(`btn-voz-${idCampo}`);
+        if (!btn) return;
+
+        if (estaEscuchando) {
+            btn.classList.remove('bg-slate-100', 'text-slate-600');
+            btn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+            btn.querySelector('span').innerText = 'Grabando...';
+        } else {
+            btn.classList.add('bg-slate-100', 'text-slate-600');
+            btn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+            btn.querySelector('span').innerText = 'Dictar';
+        }
+    }
+
+    // --- FUNCIÓN DE CORRECCIÓN DE ORTOGRAFÍA ---
+    async function corregirTexto(idCampo) {
+        const textarea = document.getElementById(idCampo);
+        const textoOriginal = textarea.value.trim();
+    
+        if (!textoOriginal) {
+            alert("El campo está vacío, escribe o dicta algo primero.");
+            return;
+        }
+    
+        // Cambiar estado del botón a "Procesando"
+        const boton = event.currentTarget;
+        const textoOriginalBoton = boton.innerHTML;
+        boton.disabled = true;
+        boton.innerHTML = `⏳ Corrigiendo...`;
+    
+        try {
+            const response = await fetch('/reportador/api/corregir-texto/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Si requieres seguridad CSRF quita el @csrf_exempt de Django y descomenta:
+                    // 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ texto: textoOriginal })
+            });
+    
+            if (!response.ok) throw new Error('Error en el servidor');
+    
+            const data = await response.json();
+            
+            // Insertamos el texto corregido localmente por el backend
+            textarea.value = data.textoCorregido;
+            
+            // Lanzamos el evento input por si tienes contadores de caracteres activos
+            textarea.dispatchEvent(new Event('input'));
+    
+        } catch (error) {
+            console.error("Error:", error);
+            alert("No se pudo realizar la corrección en este momento.");
+        } finally {
+            // Restaurar el botón
+            boton.disabled = false;
+            boton.innerHTML = textoOriginalBoton;
+        }
+    }
+
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        formulario = document.getElementById('inspeccionForm');
+        mediaModal = document.getElementById('media-modal');
+        modalImage = document.getElementById('modal-image');
+        modalPlayer = document.getElementById('modal-player');
+        modalContentWrapper = document.getElementById('modal-content-wrapper');
+        modalVideoContainer = document.getElementById('modal-video-container');
+        modalLoader = document.getElementById('modal-loader');
+        initFechaYHora();
+        initAutocompletadoClientes();
+        initContadoresTexto();
+        initEvaluacionesDinamicas();
+        initEnvioFormulario();
+        crearEvaluacion();
+    });
+
+    //-----------          FECHA Y HORA          ------------------------
+    function initFechaYHora() {
+        const inputFecha = document.getElementById('fecha');
+        const inputHora = document.getElementById('hora');
+        if (!inputFecha || !inputHora) return;
+
+        let actualizarHoraAutomatica = true;
+
+        function establecerFechaYHoraActual() {
+            const ahora = new Date();
+
+            const año = ahora.getFullYear();
+            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+            const dia = String(ahora.getDate()).padStart(2, '0');
+            if (!inputFecha.value) {
+                inputFecha.value = `${año}-${mes}-${dia}`;
+            }
+            if (actualizarHoraAutomatica) {
+                const horas = String(ahora.getHours()).padStart(2, '0');
+                const minutos = String(ahora.getMinutes()).padStart(2, '0');
+                inputHora.value = `${horas}:${minutos}`;
+            }
+        }
+
+        establecerFechaYHoraActual();
+        const intervaloHora = setInterval(establecerFechaYHoraActual, 10000);
+        inputHora.addEventListener('input', () => {
+            actualizarHoraAutomatica = false;
+            clearInterval(intervaloHora);
+            console.log("Actualización automática de hora desactivada por cambios del usuario.");
+        });
+        inputFecha.addEventListener('input', () => {
+            actualizarHoraAutomatica = false;
+            clearInterval(intervaloHora);
+        });
+    }
+
+    function initAutocompletadoClientes() {
+        const selectEl = document.getElementById('cliente_select');
+        if (!selectEl) return;
+        const clienteSelect = new TomSelect("#cliente_select", {
+            valueField: 'id',
+            labelField: 'nombre',
+            searchField: ['nombre', 'nit'],
+            preload: 'focus',
+            shouldLoad: function (query) {
+                return true;
+            },
+            load: function (query, callback) {
+                const url = `/reportador/api/clientes/?q=${encodeURIComponent(query)}`;
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return response.json();
+                    })
+                    .then(json => {
+                        callback(json);
+                    })
+                    .catch(err => {
+                        console.error("Error cargando clientes:", err);
+                        callback();
+                    });
+            },
+            render: {
+                option: function (item, escape) {
+                    return `<div class="py-2 px-3 hover:bg-slate-100 cursor-pointer transition-colors">
+                                <div class="font-bold text-slate-800">${escape(item.nombre)}</div>
+                                <div class="text-xs text-slate-400">NIT: ${escape(item.nit)}</div>
+                            </div>`;
+                },
+                item: function (item, escape) {
+                    return `<div class="text-slate-800 font-medium">${escape(item.nombre)}</div>`;
+                },
+                no_results: function (data, escape) {
+                    return `<div class="py-2 px-3 text-slate-400 text-sm">No se encontraron clientes</div>`;
+                }
+            }
+        });
+
+        clienteSelect.on('change', function (id) {
+            if (!id) {
+                limpiarCamposCliente();
+                return;
+            }
+            const datosCliente = clienteSelect.options[id];
+
+            if (datosCliente) {
+                rellenarCamposCliente(datosCliente);
+            }
+        });
+    }
+
+    //-----------           CONTADORES DE TEXTO           ------------------------
+    function initContadoresTexto() {
+        //-----------           CONTADOR CONCLUSIÓN           ------------------------
+        const conclusion = document.getElementById('conclusion');
+        const contadorConclusion = document.getElementById('contadorConclusion');
+
+        if (conclusion && contadorConclusion) {
+            conclusion.addEventListener('input', () => {
+                contadorConclusion.textContent = `${conclusion.value.length} caracteres`;
+            });
+        }
+    }
+
+    let evaluacionIndex = 0;
+    const evaluacionesContainer = document.getElementById('evaluaciones-container');
+    const evaluacionTemplate = document.getElementById('evaluacion-template');
+    const archivosPorEvaluacion = new Map();
+
+    function initEvaluacionesDinamicas() { }
+
+    function crearEvaluacion() {
+        const clone = evaluacionTemplate.content.cloneNode(true);
+        const bloque = clone.querySelector('.evaluacion-bloque');
+
+        // Incrementar el índice global para garantizar que este bloque tenga un ID único único
+        evaluacionIndex++;
+        const idUnicoTextarea = `observacion_${evaluacionIndex}`;
+        const idUnicoBtnVoz = `btn-voz-observacion_${evaluacionIndex}`;
+
+        // 1. Asignar los IDs dinámicos a los elementos nuevos del DOM
+        const textarea = bloque.querySelector('.campo-nota');
+        if (textarea) {
+            textarea.id = idUnicoTextarea;
+        }
+
+        const btnVoz = bloque.querySelector('.btn-dictar-voz');
+        if (btnVoz) {
+            btnVoz.id = idUnicoBtnVoz;
+            // Asignamos el evento click para el Dictador de Voz
+            btnVoz.addEventListener('click', () => {
+                toggleDictado(idUnicoTextarea);
+            });
+        }
+
+        const btnCorregir = bloque.querySelector('.btn-corregir-texto');
+        if (btnCorregir) {
+            // Asignamos el evento click para la Corrección de Texto
+            btnCorregir.addEventListener('click', () => {
+                corregirTexto(idUnicoTextarea);
+            });
+        }
+
+        // 2. Mantener tu lógica original de almacenamiento de archivos
+        archivosPorEvaluacion.set(bloque, []);
+
+        // 3. Inicializar los componentes dinámicos de tu formulario
+        initSelectorDinamico(bloque, '.campo-enfoque-select', '.campo-enfoque-otro', '.campo-enfoque');
+        initSelectorDinamico(bloque, '.campo-concepto-select', '.campo-concepto-otro', '.campo-concepto');
+        initCalificacionBloque(bloque);
+        initEvidenciasBloque(bloque);
+
+        // 4. Configurar botones de acción (Eliminar y Agregar)
+        bloque.querySelector('.btn-eliminar-evaluacion').addEventListener('click', () => {
+            archivosPorEvaluacion.delete(bloque);
+            bloque.remove();
+            actualizarNumeracion();
+        });
+
+        bloque.querySelector('.btn-agregar-evaluacion').addEventListener('click', crearEvaluacion);
+        
+        // Inyectar en el contenedor y actualizar la interfaz de usuario
+        evaluacionesContainer.appendChild(bloque);
+        actualizarNumeracion();
+        
+        bloque.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function actualizarNumeracion() {
+        const bloques = evaluacionesContainer.querySelectorAll('.evaluacion-bloque');
+        bloques.forEach((bloque, i) => {
+            bloque.querySelector('.evaluacion-numero').textContent = `Evaluación #${i + 1}`;
+            bloque.querySelector('.btn-eliminar-evaluacion').classList.toggle('hidden', bloques.length <= 1);
+        });
+    }
+
+    function initSelectorDinamico(bloque, selectSel, otroSel, hiddenSel) {
+        const select = bloque.querySelector(selectSel);
+        const otro = bloque.querySelector(otroSel);
+        const hidden = bloque.querySelector(hiddenSel);
+        if (!select || !otro || !hidden) return;
+
+        function actualizar() {
+            if (select.value === "Otros") {
+                otro.classList.remove("hidden");
+                otro.required = true;
+                hidden.value = otro.value.trim() ? `Otros: ${otro.value.trim()}` : "";
+            } else {
+                otro.classList.add("hidden");
+                otro.required = false;
+                otro.value = "";
+                hidden.value = select.value;
+            }
+        }
+
+        select.addEventListener("change", actualizar);
+        otro.addEventListener("input", () => {
+            hidden.value = otro.value.trim() ? `Otros: ${otro.value.trim()}` : "";
+        });
+
+        actualizar();
+    }
+
+    function initCalificacionBloque(bloque) {
+        const botones = bloque.querySelectorAll('.calificacion-btn');
+        const hidden = bloque.querySelector('.campo-calificacion');
+        if (!hidden) return;
+
+        botones.forEach(boton => {
+            boton.addEventListener('click', () => {
+                botones.forEach(b => b.classList.remove('ring-4', 'ring-[#1F7CA5]', 'ring-offset-2', 'scale-[1.02]'));
+                boton.classList.add('ring-4', 'ring-[#1F7CA5]', 'ring-offset-2', 'scale-[1.02]');
+                hidden.value = boton.dataset.value;
+            });
+        });
+    }
+
+    function initEvidenciasBloque(bloque) {
+        const dropzone = bloque.querySelector('.campo-evidencias-dropzone');
+        const input = bloque.querySelector('.campo-evidencias-input');
+        const helper = bloque.querySelector('.campo-evidencias-helper');
+        const preview = bloque.querySelector('.campo-evidencias-preview');
+        if (!dropzone || !input) return;
+
+        dropzone.addEventListener('click', () => input.click());
+
+        input.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            const archivos = archivosPorEvaluacion.get(bloque);
+
+            for (const file of files) {
+                if (file.type.startsWith('video/')) {
+                    if (file.size > MAX_VIDEO_SIZE) {
+                        mostrarToast('error', `El video "${file.name}" supera el límite de 50MB.`);
+                        continue;
+                    }
+                    archivos.push({ file, type: 'video' });
+                } else if (file.type.startsWith('image/')) {
+                    try {
+                        const compressedBlob = await comprimirImagen(file);
+                        const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), { type: "image/jpeg" });
+                        archivos.push({ file: compressedFile, type: 'image' });
+                    } catch (error) {
+                        archivos.push({ file, type: 'image' });
+                    }
+                }
+            }
+            renderPreviewsBloque(bloque, preview, helper);
+            input.value = "";
+        });
+    }
+
+    function renderPreviewsBloque(bloque, preview, helper) {
+        preview.innerHTML = "";
+        const archivos = archivosPorEvaluacion.get(bloque);
+
+        if (archivos.length > 0) {
+            helper.textContent = `✓ ${archivos.length} archivo(s) procesado(s) correctamente`;
+            helper.className = "campo-evidencias-helper text-xs font-semibold text-[#4fbfb4]";
+        } else {
+            helper.textContent = "Imágenes (JPEG comprimido) | Videos hasta 50MB";
+            helper.className = "campo-evidencias-helper text-xs text-slate-400";
+        }
+
+        archivos.forEach((item, index) => {
+            const itemUrl = URL.createObjectURL(item.file);
+            const wrapper = document.createElement('div');
+            wrapper.className = "relative group aspect-square rounded-xl overflow-hidden bg-slate-900 border border-slate-200 shadow-sm hover:shadow-lg hover:scale-[1.02] active:scale-[0.99] transition-all duration-300 cursor-pointer select-none";
+
+            if (item.type === 'image') {
+                const img = document.createElement('img');
+                img.src = itemUrl;
+                img.className = "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105";
+                wrapper.appendChild(img);
+                wrapper.addEventListener('click', () => abrirMediaModal(itemUrl, 'image'));
+            } else if (item.type === 'video') {
+                const video = document.createElement('video');
+                video.src = itemUrl;
+                video.className = "w-full h-full object-cover opacity-85 group-hover:opacity-75 transition-all duration-300";
+                video.currentTime = 0.5;
+                video.muted = true;
+                video.playsInline = true;
+                wrapper.appendChild(video);
+
+                const playOverlay = document.createElement('div');
+                playOverlay.className = "absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors duration-300";
+                playOverlay.innerHTML = `<div class="p-3 rounded-full bg-white/95 text-[#1f7ca5] shadow-xl transform group-hover:scale-110 transition-all duration-300">
+                <svg class="w-5 h-5 fill-current translate-x-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>`;
+                wrapper.addEventListener('click', () => abrirMediaModal(itemUrl, 'video'));
+                wrapper.appendChild(playOverlay);
+
+                const badge = document.createElement('span');
+                badge.className = "absolute bottom-2.5 left-2.5 bg-[#1f7ca5]/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-md backdrop-blur-sm";
+                badge.textContent = "Video";
+                wrapper.appendChild(badge);
+            }
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = "button";
+            deleteBtn.className = "absolute top-2.5 right-2.5 z-20 h-8 w-8 flex items-center justify-center bg-red-500/90 hover:bg-red-600 text-white rounded-xl shadow-md backdrop-blur-md opacity-100 sm:opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 transition-all duration-250 focus:outline-none border border-white/10";
+            deleteBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
+            deleteBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                URL.revokeObjectURL(itemUrl);
+                archivos.splice(index, 1);
+                renderPreviewsBloque(bloque, preview, helper);
+            });
+
+            wrapper.appendChild(deleteBtn);
+            preview.appendChild(wrapper);
+        });
+    }
+
+    function comprimirImagen(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > IMAGE_MAX_WIDTH) {
+                        height = Math.round((height * IMAGE_MAX_WIDTH) / width);
+                        width = IMAGE_MAX_WIDTH;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error('Canvas falló'));
+                    }, 'image/jpeg', IMAGE_QUALITY);
+                };
+            };
+        });
+    }
+
+    function abrirMediaModal(url, type) {
+
+        if (!mediaModal) return;
+    
+        const modalFileType = document.getElementById("modal-file-type");
+    
+        // Reiniciar estado
+        if (modalPlayer) {
+            modalPlayer.pause();
+            modalPlayer.removeAttribute("src");
+            modalPlayer.load();
+        }
+    
+        if (modalImage) {
+            modalImage.removeAttribute("src");
+            modalImage.classList.add("hidden");
+        }
+    
+        if (modalVideoContainer) {
+            modalVideoContainer.classList.add("hidden");
+        }
+    
+        modalLoader?.classList.remove("hidden");
+    
+        if (modalFileType) {
+            modalFileType.textContent =
+                (type === "image" || type === "imagen") ? "Imagen" : "Video";
+        }
+    
+        if (type === "image" || type === "imagen") {
+            modalImage.src = url;
+            modalImage.classList.remove("hidden");
+        } else {
+            modalPlayer.src = url;
+            modalVideoContainer.classList.remove("hidden");
+            modalPlayer.load();
+            modalPlayer.play().catch(() => {});
+        }
+    
+        document.body.classList.add("overflow-hidden");
+    
+        mediaModal.classList.remove("hidden");
+    
+        requestAnimationFrame(() => {
+            mediaModal.classList.remove("opacity-0");
+    
+            modalContentWrapper.classList.remove("opacity-0", "scale-95");
+            modalContentWrapper.classList.add("opacity-100", "scale-100");
+        });
+    
+        document.removeEventListener("keydown", manejarTeclaEscape);
+        document.addEventListener("keydown", manejarTeclaEscape);
+    }
+    
+    function cerrarMediaModal() {
+    
+        if (!mediaModal) return;
+    
+        mediaModal.classList.add("opacity-0");
+    
+        modalContentWrapper.classList.remove("opacity-100", "scale-100");
+        modalContentWrapper.classList.add("opacity-0", "scale-95");
+    
+        setTimeout(() => {
+            mediaModal.classList.add("hidden");
+    
+            modalImage.removeAttribute("src");
+            modalImage.classList.add("hidden");
+    
+            modalPlayer.pause();
+            modalPlayer.removeAttribute("src");
+            modalPlayer.load();
+    
+            modalVideoContainer.classList.add("hidden");
+    
+            modalLoader.classList.add("hidden");
+    
+            document.body.classList.remove("overflow-hidden");
+        }, 300);
+    
+        document.removeEventListener("keydown", manejarTeclaEscape);
+    }
+    
+    function manejarTeclaEscape(e) {
+        if (e.key === 'Escape') {
+            cerrarMediaModal();
+        }
+    }
+
+    function mostrarToast(tipo, mensaje, duracion = null) {
+        const container = document.getElementById('toast-container');
+        const backdrop = document.getElementById('toast-backdrop');
+        if (!container) return;
+
+        // 1. MEJORA DE VISIBILIDAD: Forzar que la pantalla suba para ver el Toast de inmediato
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth' // Desplazamiento elegante y fluido
+        });
+
+        // Duración por defecto
+        if (duracion === null) {
+            duracion = tipo === 'success' ? 5500 : 6000;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${tipo}`;
+
+        const iconoExito = `<svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25 4.5-4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`;
+
+        const iconoError = `<svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`;
+
+        const titulo = tipo === 'success' ? '¡Inspección guardada!' : 'Ocurrió un error';
+        const icono = tipo === 'success' ? iconoExito : iconoError;
+
+        toast.innerHTML = `
+            <div class="toast-icon-wrap">${icono}</div>
+            <div class="toast-content">
+                <p class="toast-title">${titulo}</p>
+                <p class="toast-message">${mensaje}</p>
+            </div>
+            <button type="button" class="toast-close" aria-label="Cerrar">
+                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="toast-progress" style="animation-duration: ${duracion}ms"></div>
+        `;
+
+        container.appendChild(toast);
+
+        // Activar el fondo atenuado y prevenir scroll accidental mientras lee el resultado
+        if (backdrop) {
+            backdrop.classList.add('toast-backdrop-show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        requestAnimationFrame(() => toast.classList.add('toast-show'));
+
+        const cerrar = () => {
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+
+                // Solo remueve el backdrop y restaura el scroll si no quedan más alertas activas
+                if (backdrop && container.children.length === 0) {
+                    backdrop.classList.remove('toast-backdrop-show');
+                    document.body.style.overflow = ''; // Devuelve el scroll normal al body
+                }
+            }, { once: true });
+        };
+
+        const timer = setTimeout(cerrar, duracion);
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+            clearTimeout(timer);
+            cerrar();
+        });
+    }
+
+    function rellenarCamposCliente(datosCliente) {
+        document.getElementById('cliente_id').value = datosCliente.id;
+        document.getElementById('nit').value = datosCliente.nit;
+        document.getElementById('administrador').value = datosCliente.administrador || 'No asignado';
+
+        if (datosCliente.correos && datosCliente.correos.length > 0) {
+            document.getElementById('correo').value = datosCliente.correos.join(', ');
+        } else {
+            document.getElementById('correo').value = 'Sin correos registrados';
+        }
+
+        // Resaltamos visualmente los campos llenados dándoles un pequeño feedback táctil
+        efectoCargaFlashes(['nit', 'administrador', 'correo']);
+    }
+
+    function limpiarCamposCliente() {
+        document.getElementById('cliente_id').value = '';
+        document.getElementById('nit').value = '';
+        document.getElementById('administrador').value = '';
+        document.getElementById('correo').value = '';
+    }
+
+    // Pequeño detalle de UX: Destella sutilmente los bordes al autocompletar
+    function efectoCargaFlashes(fields) {
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('border-[#4fbfb4]', 'ring-2', 'ring-[#4fbfb4]/20');
+                setTimeout(() => {
+                    el.classList.remove('border-[#4fbfb4]', 'ring-2', 'ring-[#4fbfb4]/20');
+                }, 500);
+            }
+        });
+    }
+
+
+    function initEnvioFormulario() {
+        if (!formulario) return;
+
+        formulario.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(formulario);
+            const bloques = Array.from(evaluacionesContainer.querySelectorAll('.evaluacion-bloque'));
+
+            formData.set('total_evaluaciones', bloques.length);
+
+            bloques.forEach((bloque, index) => {
+                const archivos = archivosPorEvaluacion.get(bloque) || [];
+                archivos.forEach(item => {
+                    formData.append(`evidencias_${index}`, item.file);
+                });
+            });
+
+            const url = formulario.getAttribute('action') || '/reportador/api/inspecciones/guardar/';
+
+            const submitBtn = formulario.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg> Guardando...
+            `;
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+                .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                .then(res => {
+                    if (res.status === 201 || res.body.status === 'success') {
+                        mostrarToast('success', res.body.message);
+                        formulario.reset();
+                        limpiarCamposCliente();
+                        evaluacionesContainer.innerHTML = "";
+                        archivosPorEvaluacion.clear();
+                        crearEvaluacion();
+                    } else {
+                        mostrarToast('error', res.body.message || 'No se pudo procesar la solicitud.');
+                    }
+                })
+                .catch(err => {
+                    console.error("Error en el envío:", err);
+                    mostrarToast('error', 'Ocurrió un error de red al intentar guardar la inspección.');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+        });
+    }
+
+</script>
+
+{% endblock %}

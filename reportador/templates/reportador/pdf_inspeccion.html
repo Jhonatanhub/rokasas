@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe de Inspección</title>
+    <style>
+        /* ============================================================
+           PÁGINA — encabezado y pie de página automáticos (WeasyPrint)
+           ============================================================ */
+        @page {
+            size: letter;
+            margin: 2cm 1.6cm 2cm 1.6cm;
+
+            @top-center {
+                content: element(running-header);
+            }
+            @bottom-center {
+                content: element(running-footer);
+            }
+        }
+
+        /* En la primera página el header corrido se oculta */
+        @page :first {
+            @top-center {
+                content: normal;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        :root {
+            --rk-blue: #1f7ca5;
+            --rk-blue-ink: #0b2f42;
+            --rk-teal: #11b0a1;
+            --rk-emerald: #10b981;
+            --rk-emerald-bg: #e8f9f2;
+            --rk-amber: #b45309;
+            --rk-amber-bg: #fef3e2;
+            --rk-red: #b91c1c;
+            --rk-red-bg: #fdecec;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #334155;
+            font-size: 9.5pt;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* ============================================================
+           ENCABEZADO REPETIDO (páginas 2+)
+           ============================================================ */
+        .running-header {
+            position: running(running-header);
+        }
+        .running-header-inner {
+            width: 100%;
+            border-bottom: 2px solid var(--rk-blue);
+            padding-bottom: 6px;
+            margin-bottom: 4px;
+        }
+        .running-header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .running-header-table td { vertical-align: middle; }
+        .running-header-brand {
+            font-size: 8pt;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .running-header-title {
+            text-align: right;
+            font-size: 8pt;
+            color: var(--rk-blue-ink);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ============================================================
+           PIE DE PÁGINA REPETIDO
+           ============================================================ */
+        .running-footer {
+            position: running(running-footer);
+        }
+        .running-footer-inner {
+            width: 100%;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 6px;
+            font-size: 7.5pt;
+            color: #94a3b8;
+        }
+        .running-footer-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .running-footer-table td { vertical-align: middle; }
+        .running-footer-right {
+            text-align: right;
+            padding-left: 20px;
+        }
+        .running-footer-right::after {
+            content: "Página " counter(page) " de " counter(pages);
+        }
+
+        /* ============================================================
+           BANDA DE TÍTULO PRINCIPAL
+           ============================================================ */
+        .cover-band {
+            background: linear-gradient(135deg, var(--rk-blue) 0%, var(--rk-blue-ink) 100%);
+            padding: 18px 20px;
+            margin-bottom: 22px;
+            border-radius: 6px;
+        }
+        .cover-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .cover-table td { vertical-align: middle; }
+
+        .logo-side {
+            width: 180px;
+            text-align: left;
+        }
+        .spacer-side {
+            width: 180px;
+        }
+        .logo-box {
+            display: inline-block;
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 9px 14px;
+            line-height: 0;
+        }
+        .logo {
+            height: 34px;
+            width: auto;
+        }
+        .title-center {
+            text-align: center;
+        }
+        .title-center h1 {
+            color: #ffffff;
+            font-size: 17pt;
+            margin: 0;
+            font-weight: bold;
+            letter-spacing: 0.4px;
+        }
+        .title-center p {
+            margin: 4px 0 0 0;
+            color: #a9f0e2;
+            font-size: 8.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.4px;
+        }
+
+        /* ============================================================
+           FICHA TÉCNICA
+           ============================================================ */
+        .info-card-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid var(--rk-teal);
+            border-radius: 4px;
+            margin-bottom: 22px;
+        }
+        .info-card-table > tr > td {
+            padding: 12px 18px;
+        }
+        .info-card-heading {
+            color: var(--rk-blue-ink);
+            font-size: 9pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-table td {
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+        .label {
+            font-weight: bold;
+            color: #64748b;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .value {
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        /* ============================================================
+           TÍTULOS DE SECCIÓN
+           ============================================================ */
+        .section-title-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+        .section-title-marker {
+            width: 10px;
+            background-color: var(--rk-teal);
+            border-radius: 2px;
+        }
+        .section-title-text {
+            color: var(--rk-blue-ink);
+            font-size: 12pt;
+            font-weight: bold;
+            padding-left: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+
+        /* ============================================================
+           BLOQUES DE EVALUACIÓN
+           ============================================================ */
+        .tabla-evaluacion {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            overflow: hidden;
+            page-break-inside: avoid; /* Previene que la evaluación se fracture de forma extraña */
+        }
+        .bloque-header-td {
+            background: linear-gradient(90deg, var(--rk-blue) 0%, var(--rk-blue-ink) 100%);
+            color: #ffffff;
+            padding: 9px 16px;
+        }
+        .bloque-header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .bloque-numero-badge {
+            display: inline-block;
+            background-color: #ffffff;
+            color: var(--rk-blue-ink);
+            font-weight: bold;
+            font-size: 10pt;
+            width: 22px;
+            height: 22px;
+            text-align: center;
+            border-radius: 50%;
+            line-height: 22px;
+        }
+        .bloque-header-label {
+            font-weight: bold;
+            font-size: 10.5pt;
+            letter-spacing: 0.3px;
+            padding-left: 10px;
+        }
+        .bloque-body-td {
+            padding: 14px 16px;
+        }
+
+        /* Estilos para la cuadrícula alineada de Enfoque, Concepto y Calificación */
+        .eval-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .eval-grid-header th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: bold;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            width: 33.33%;
+        }
+        .eval-grid-body td {
+            padding: 10px 12px;
+            color: #1e293b;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+
+        /* Badges de calificación */
+        .badge-calificacion {
+            padding: 3px 12px;
+            font-weight: bold;
+            border-radius: 12px;
+            font-size: 9pt;
+            display: inline-block;
+            border: 1px solid transparent;
+        }
+        .badge-excelente {
+            background-color: var(--rk-emerald-bg);
+            color: var(--rk-emerald);
+            border-color: var(--rk-emerald);
+        }
+        .badge-regular {
+            background-color: var(--rk-amber-bg);
+            color: var(--rk-amber);
+            border-color: var(--rk-amber);
+        }
+        .badge-mala {
+            background-color: var(--rk-red-bg);
+            color: var(--rk-red);
+            border-color: var(--rk-red);
+        }
+
+        /* Caja de observaciones expandida */
+        .observacion-row {
+            margin-bottom: 14px;
+        }
+        .observacion-box {
+            background-color: #f8fafc;
+            border-left: 3px solid #cbd5e1;
+            padding: 9px 14px;
+            color: #475569;
+            font-style: italic;
+            border-radius: 3px;
+        }
+
+        /* ============================================================
+           SECCIÓN DE EVIDENCIA (Optimización de 3 columnas fijas)
+           ============================================================ */
+        .evidencia-section {
+            margin-top: 14px;
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 12px;
+        }
+        .evidencia-label {
+            font-weight: bold;
+            color: #64748b;
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .evidencia-table-3col {
+            width: 100%;
+            table-layout: fixed; /* OBLIGA a que las 3 columnas midan exactamente lo mismo sin deformarse */
+            border-collapse: separate;
+            border-spacing: 6px; /* Espaciado limpio entre las fotos */
+        }
+        .evidencia-table-3col td {
+            width: 33.33%;
+            padding: 0;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .evidencia-card {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            padding: 4px;
+            display: block;
+        }
+        .evidencia-thumb {
+            width: 100%;
+            height: auto;        /* Permite crecimiento proporcional hacia abajo */
+            max-height: 170px;   /* Altura máxima expandida (antes confinada a 120px) */
+            object-fit: contain; /* Muestra el contenido completo (capturas/textos) sin recortar los bordes */
+            display: block;
+            margin: 0 auto;
+        }
+
+        .sin-bloques {
+            color: #94a3b8;
+            font-style: italic;
+            padding: 14px;
+            text-align: center;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+        }
+
+        /* ============================================================
+           CONCLUSIONES
+           ============================================================ */
+        .conclusion-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-left: 4px solid var(--rk-teal);
+            border-radius: 4px;
+            page-break-inside: avoid;
+        }
+        .conclusion-td {
+            padding: 14px 18px;
+            color: #115e56;
+        }
+        .conclusion-heading {
+            color: var(--rk-blue-ink);
+            font-weight: bold;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        /* ============================================================
+           BLOQUE DE FIRMAS
+           ============================================================ */
+        .firmas-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 34px;
+            page-break-inside: avoid;
+        }
+        .firma-col {
+            width: 48%;
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #94a3b8;
+            font-size: 8.5pt;
+            color: #475569;
+        }
+        .firma-spacer { width: 4%; }
+        .firma-nombre {
+            font-weight: bold;
+            color: #1e293b;
+            font-size: 9pt;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="running-header">
+        <div class="running-header-inner">
+            <table class="running-header-table">
+                <tr>
+                    <td class="running-header-brand">ROKA &nbsp;·&nbsp; Servicios Integrales</td>
+                    <td class="running-header-title">Informe Prestación Servicio</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="running-footer">
+        <div class="running-footer-inner">
+            <table class="running-footer-table">
+                <tr>
+                    <td>Documento generado automáticamente — {{ fecha }} {{ hora }}</td>
+                    <td class="running-footer-right"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <table class="cover-table cover-band">
+        <tr>
+            <td class="logo-side">
+                <span class="logo-box">
+                    <img src="{{ logo_url }}" class="logo" alt="Roka">
+                </span>
+            </td>
+            <td class="title-center">
+                <h1>INFORME DE INSPECCIÓN</h1>
+                <p>Reporte Técnico Operativo</p>
+            </td>
+            <td class="spacer-side">&nbsp;</td>
+        </tr>
+    </table>
+
+    <table class="info-card-table">
+        <tr>
+            <td>
+                <div class="info-card-heading">Datos Generales</div>
+                <table class="info-table">
+                    <tr>
+                        <td class="label" style="width: 15%;">Cliente</td>
+                        <td class="value" style="width: 35%;">{{ cliente_nombre }}</td>
+                        <td class="label" style="width: 15%;">Fecha</td>
+                        <td class="value" style="width: 35%;">{{ fecha }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">NIT</td>
+                        <td class="value">{{ cliente_nit }}</td>
+                        <td class="label">Hora</td>
+                        <td class="value">{{ hora }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Administrador</td>
+                        <td class="value">{{ administrador }}</td>
+                        <td class="label">Supervisor</td>
+                        <td class="value">{{ supervisor }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="section-title-table">
+        <tr>
+            <td class="section-title-marker">&nbsp;</td>
+            <td class="section-title-text">Detalles de Evaluaciones Realizadas</td>
+        </tr>
+    </table>
+
+    {% for det in detalles %}
+    <table class="tabla-evaluacion">
+        <tr>
+            <td class="bloque-header-td">
+                <table class="bloque-header-table">
+                    <tr>
+                        <td style="width: 26px;">
+                            <span class="bloque-numero-badge">{{ det.numero }}</span>
+                        </td>
+                        <td class="bloque-header-label">Evaluación #{{ det.numero }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td class="bloque-body-td">
+                
+                <table class="eval-grid-table">
+                    <tr class="eval-grid-header">
+                        <th>Enfoque</th>
+                        <th>Concepto Técnico</th>
+                        <th>Calificación</th>
+                    </tr>
+                    <tr class="eval-grid-body">
+                        <td>{{ det.enfoque }}</td>
+                        <td>{{ det.concepto }}</td>
+                        <td>
+                            <span class="badge-calificacion
+                                {% if det.calificacion == 'Excelente' %}badge-excelente
+                                {% elif det.calificacion == 'Regular' %}badge-regular
+                                {% else %}badge-mala{% endif %}">{{ det.calificacion }}</span>
+                        </td>
+                    </tr>
+                </table>
+
+                {% if det.imagenes %}
+                <div class="evidencia-section">
+                    <span class="evidencia-label">Evidencia Fotográfica ({{ det.imagenes|length }})</span>
+                    <table class="evidencia-table-3col">
+                        <tr>
+                        {% for img in det.imagenes %}
+                            <td>
+                                <div class="evidencia-card">
+                                    <img src="{{ img }}" class="evidencia-thumb">
+                                </div>
+                            </td>
+                            {% if forloop.counter|divisibleby:3 and not forloop.last %}
+                            </tr><tr>
+                            {% endif %}
+                        {% endfor %}
+                        </tr>
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if det.observacion %}
+                <div class="observacion-row">
+                    <span class="label" style="display:block; margin-bottom: 4px;">Observación</span>
+                    <div class="observacion-box">{{ det.observacion }}</div>
+                </div>
+                {% endif %}
+
+            </td>
+        </tr>
+    </table>
+    {% empty %}
+    <div class="sin-bloques">No se registraron bloques de evaluación en esta inspección.</div>
+    {% endfor %}
+
+    <table class="section-title-table">
+        <tr>
+            <td class="section-title-marker">&nbsp;</td>
+            <td class="section-title-text">Conclusiones y Observaciones Generales</td>
+        </tr>
+    </table>
+
+    <table class="conclusion-table">
+        <tr>
+            <td class="conclusion-td">
+                <span class="conclusion-heading">Resumen del inspector</span>
+                {% if conclusion %}
+                    {{ conclusion|linebreaksbr }}
+                {% else %}
+                    Sin observaciones particulares añadidas al cierre del reporte.
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <table class="firmas-table">
+        <tr>
+            <td class="firma-col">
+                <div class="firma-nombre">{{ administrador }}</div>
+                Administrador
+            </td>
+            <td class="firma-spacer"></td>
+            <td class="firma-col">
+                <div class="firma-nombre">{{ supervisor }}</div>
+                Supervisor
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

@@ -1,0 +1,601 @@
+{% extends 'base.html' %}
+
+{% block title %}Consolidado por Cliente - Roka{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+    :root {
+        --rk-blue: #1f7ca5;
+        --rk-blue-dark: #0b2f42;
+        --rk-teal: #4fbfb4;
+        --rk-emerald: #10b981;
+        --rk-amber: #f59e0b;
+        --rk-red: #ef4444;
+    }
+    .font-display { font-family: 'Sora', ui-sans-serif, system-ui; }
+    .rk-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .rk-preset-btn {
+        transition: all 0.15s ease;
+    }
+    .rk-preset-btn.active {
+        background: var(--rk-blue);
+        color: #fff;
+        border-color: var(--rk-blue);
+    }
+    .rk-fade-in {
+        animation: rk-fade 0.4s ease-out forwards;
+    }
+    @keyframes rk-fade {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .rk-gauge-needle {
+        transform-origin: 100px 100px;
+        transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .rk-toast {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s ease;
+        z-index: 100;
+        backdrop-filter: blur(8px);
+    }
+    .rk-toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+    .rk-spinner {
+        border: 3px solid #e2e8f0;
+        border-top-color: var(--rk-blue);
+        border-radius: 50%;
+        width: 18px; height: 18px;
+        animation: rk-spin 0.7s linear infinite;
+    }
+    @keyframes rk-spin { to { transform: rotate(360deg); } }
+
+
+
+
+    .flatpickr-calendar {
+        border-radius: 1rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+        border: 1px solid #e2e8f0 !important;
+        font-family: inherit !important;
+    }
+    .flatpickr-day.selected, 
+    .flatpickr-day.startRange, 
+    .flatpickr-day.endRange, 
+    .flatpickr-day.selected.inRange, 
+    .flatpickr-day.startRange.inRange, 
+    .flatpickr-day.endRange.inRange, 
+    .flatpickr-day.selected:focus, 
+    .flatpickr-day.startRange:focus, 
+    .flatpickr-day.endRange:focus, 
+    .flatpickr-day.selected:hover, 
+    .flatpickr-day.startRange:hover, 
+    .flatpickr-day.endRange:hover {
+        background: #4fbfb4 !important; /* Tu color corporativo Teal */
+        border-color: #4fbfb4 !important;
+    }
+    .flatpickr-months .flatpickr-month {
+        color: #0b57a3 !important; /* Tu azul oscuro para el título del mes */
+    }
+</style>
+
+<div id="rkToast" class="rk-toast">
+    <div class="rounded-xl px-5 py-3 shadow-lg text-sm font-semibold flex items-center gap-2" id="rkToastInner">
+        <span id="rkToastText"></span>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto py-6 px-4 space-y-6">
+
+    <div>
+        <h1 class="font-display text-2xl font-bold text-[var(--rk-blue-dark)] tracking-tight">Consolidado por Cliente</h1>
+        <p class="text-sm text-slate-500 mt-1">Selecciona un cliente y un rango de fechas para generar el informe consolidado del período.</p>
+    </div>
+
+    <div class="rk-card p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="relative">
+                <label for="cliente_select" class="block text-sm font-semibold text-slate-700 mb-2">
+                    Cliente <span class="text-red-500">*</span>
+                </label>
+                <select id="cliente_select" placeholder="Escribe para buscar cliente..." class="w-full"></select>
+                
+                <input type="hidden" id="selectCliente" name="cliente_id" required>
+            </div>
+            
+            <div class="relative">
+                <label for="inputFechaInicio" class="block text-sm font-semibold text-slate-700 mb-2">
+                    Fecha Inicio <span class="text-red-500">*</span>
+                </label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#4fbfb4] transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <input type="text" id="inputFechaInicio" placeholder="Selecciona fecha inicial" readonly
+                           class="w-full rounded-xl border border-slate-300 bg-white pl-11 pr-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800 text-sm cursor-pointer">
+                </div>
+            </div>
+            
+            <div class="relative">
+                <label for="inputFechaFin" class="block text-sm font-semibold text-slate-700 mb-2">
+                    Fecha Fin <span class="text-red-500">*</span>
+                </label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#4fbfb4] transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <input type="text" id="inputFechaFin" placeholder="Selecciona fecha final" readonly
+                           class="w-full rounded-xl border border-slate-300 bg-white pl-11 pr-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800 text-sm cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-5">
+            <button data-preset="mes" class="rk-preset-btn text-xs font-semibold px-4 py-2 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-50 transition-all">Mes actual</button>
+            <button data-preset="trimestre" class="rk-preset-btn text-xs font-semibold px-4 py-2 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-50 transition-all">Trimestre actual</button>
+            <button data-preset="semestre" class="rk-preset-btn text-xs font-semibold px-4 py-2 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-50 transition-all">Semestre actual</button>
+            <button data-preset="anio" class="rk-preset-btn text-xs font-semibold px-4 py-2 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-50 transition-all">Año actual</button>
+        </div>
+
+        <div class="mt-6 flex items-center gap-3 pt-4 border-t border-slate-100">
+            <button id="btnBuscar" class="bg-[#1f7ca5] hover:bg-[#1a688b] text-white text-sm font-semibold px-6 py-3 rounded-xl transition-all shadow-md shadow-[#1f7ca5]/10 active:scale-[0.98] flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
+                Buscar Inspecciones
+            </button>
+            <span id="buscarSpinner" class="rk-spinner hidden"></span>
+            <span id="mensajeVacio" class="text-sm text-slate-400 hidden">No hay inspecciones registradas en este rango para el cliente seleccionado.</span>
+        </div>
+    </div>
+
+    <div id="panelResultados" class="hidden space-y-6">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="rk-card p-5 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Inspecciones en el Período</span>
+                <p class="font-display text-3xl font-bold text-slate-900 mt-2" id="kpiTotalInspecciones">0</p>
+            </div>
+            <div class="rk-card p-5 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Evidencias Registradas</span>
+                <p class="font-display text-3xl font-bold text-slate-900 mt-2" id="kpiTotalEvidencias">0</p>
+            </div>
+            <div class="rk-card p-5 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Calificación Promedio</span>
+                <p class="font-display text-3xl font-bold text-slate-900 mt-2"><span id="kpiPromedio">0</span><span class="text-lg text-slate-400 font-medium">/5</span></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="rk-card p-5 lg:col-span-1 flex flex-col items-center rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase self-start">Índice de Calidad</h3>
+                <svg viewBox="0 0 200 110" class="w-full max-w-[200px] mt-2">
+                    <path d="M20,100 A80,80 0 0,1 60,30.72" fill="none" stroke="var(--rk-red)" stroke-width="14" stroke-linecap="round" />
+                    <path d="M60,30.72 A80,80 0 0,1 140,30.72" fill="none" stroke="var(--rk-amber)" stroke-width="14" stroke-linecap="round" />
+                    <path d="M140,30.72 A80,80 0 0,1 180,100" fill="none" stroke="var(--rk-emerald)" stroke-width="14" stroke-linecap="round" />
+                    <line id="gaugeNeedle" x1="100" y1="100" x2="100" y2="28" stroke="var(--rk-blue-dark)" stroke-width="3" stroke-linecap="round" class="rk-gauge-needle" />
+                    <circle cx="100" cy="100" r="7" fill="var(--rk-blue-dark)" />
+                </svg>
+            </div>
+
+            <div class="rk-card p-5 lg:col-span-2 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Listado de Inspecciones</h3>
+                <div class="mt-3 max-h-[240px] overflow-y-auto pr-1">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-xs text-slate-400 uppercase text-left">
+                                <th class="pb-2">Fecha</th>
+                                <th class="pb-2">Hora</th>
+                                <th class="pb-2">Administrador</th>
+                                <th class="pb-2 text-right">Bloques</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaInspecciones" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="rk-card p-5 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Evolución Mensual</h3>
+                <div class="mt-3 h-56 relative"><canvas id="chartEvolucion"></canvas></div>
+            </div>
+            <div class="rk-card p-5 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Distribución de Calificaciones</h3>
+                <div class="mt-3 h-56 relative"><canvas id="chartCalificacion"></canvas></div>
+            </div>
+            <div class="rk-card p-5 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Zonas Evaluadas</h3>
+                <div class="mt-3 h-56 relative"><canvas id="chartZonas"></canvas></div>
+            </div>
+            <div class="rk-card p-5 rk-fade-in flex flex-col items-center bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase self-start">Enfoques</h3>
+                <div class="mt-3 h-56 relative w-full max-w-[220px]"><canvas id="chartEnfoques"></canvas></div>
+            </div>
+        </div>
+
+        <div class="rk-card p-6 rk-fade-in bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <h3 class="text-base font-bold text-[#1f7ca5] border-b border-slate-100 pb-2 mb-3">Conclusión General del Período</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Este texto se incluirá en el PDF y en el cuerpo del correo enviado al cliente.</p>
+            
+            <textarea id="inputConclusion" rows="4" 
+                      class="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all" 
+                      placeholder="Escribe aquí la conclusión general del consolidado..."></textarea>
+
+            <div class="flex justify-end pt-4 mt-2">
+                <button id="btnGenerar" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-[#4fbfb4] text-white font-semibold hover:bg-[#3ea399] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-[#4fbfb4]/20 transition-all shadow-md shadow-[#4fbfb4]/10 flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    Generar y Enviar Consolidado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tomSelectCliente = new TomSelect("#cliente_select", {
+            valueField: 'id',
+            labelField: 'nombre',
+            searchField: 'nombre',
+            loadThrottle: 300, // Evita saturar el servidor mientras se escribe
+            preload: true,     // Carga los primeros clientes al hacer clic
+            placeholder: "Escribe para buscar cliente...",
+            load: function(query, callback) {
+                // Ajusta esta URL si tu endpoint de búsqueda de clientes es diferente
+                const url = `/reportador/api/clientes/?q=${encodeURIComponent(query)}`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(json => {
+                        // Se esperan los resultados en formato [{id: 1, nombre: 'Cliente X'}, ...]
+                        callback(json.resultados || json); 
+                    }).catch(() => {
+                        callback();
+                    });
+            },
+            onChange: function(value) {
+                // Seteamos el valor en el input oculto para que todo el JS consolidado siga funcionando igual
+                document.getElementById('selectCliente').value = value;
+            },
+            render: {
+                option: function(item, escape) {
+                    return `<div class="option">
+                        <span class="font-medium text-slate-800">${escape(item.nombre)}</span>
+                    </div>`;
+                },
+                item: function(item, escape) {
+                    return `<div class="item">${escape(item.nombre)}</div>`;
+                }
+            }
+        });
+
+        // ---------------------------------------------------------------
+        // CONFIGURACIÓN E INICIALIZACIÓN DE FLATPICKR
+        // ---------------------------------------------------------------
+        let fpInicio, fpFin;
+    
+        const configComun = {
+            locale: "es",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "j \\de F, Y",
+            disableMobile: "true"
+        };
+    
+        // Inicializar selector de fecha de inicio con validación cruzada
+        fpInicio = flatpickr("#inputFechaInicio", {
+            ...configComun,
+            onChange: function(selectedDates, dateStr) {
+                fpFin.set("minDate", dateStr);
+            }
+        });
+    
+        // Inicializar selector de fecha fin con validación cruzada
+        fpFin = flatpickr("#inputFechaFin", {
+            ...configComun,
+            onChange: function(selectedDates, dateStr) {
+                fpInicio.set("maxDate", dateStr);
+            }
+        });
+    
+        // ---------------------------------------------------------------
+        // CONFIGURACIÓN DE ELEMENTOS DEL DOM Y CHART.JS
+        // ---------------------------------------------------------------
+        Chart.defaults.font.family = 'Plus Jakarta Sans, ui-sans-serif, system-ui';
+        Chart.defaults.font.size = 11;
+        Chart.defaults.color = '#64748b';
+    
+        const selectCliente = document.getElementById('selectCliente');
+        const inputInicio = document.getElementById('inputFechaInicio');
+        const inputFin = document.getElementById('inputFechaFin');
+        const btnBuscar = document.getElementById('btnBuscar');
+        const btnGenerar = document.getElementById('btnGenerar');
+        const panelResultados = document.getElementById('panelResultados');
+        const buscarSpinner = document.getElementById('buscarSpinner');
+        const mensajeVacio = document.getElementById('mensajeVacio');
+    
+        let charts = {};
+    
+        // ---------------------------------------------------------------
+        // PRESETS DE RANGOS DE FECHA
+        // ---------------------------------------------------------------
+        function formatoISO(fecha) {
+            return fecha.toISOString().split('T')[0];
+        }
+    
+        function calcularRango(preset) {
+            const hoy = new Date();
+            const anio = hoy.getFullYear();
+            const mes = hoy.getMonth();
+            let inicio, fin = hoy;
+    
+            if (preset === 'mes') {
+                inicio = new Date(anio, mes, 1);
+            } else if (preset === 'trimestre') {
+                const inicioTrimestre = Math.floor(mes / 3) * 3;
+                inicio = new Date(anio, inicioTrimestre, 1);
+            } else if (preset === 'semestre') {
+                inicio = new Date(anio, mes < 6 ? 0 : 6, 1);
+            } else if (preset === 'anio') {
+                inicio = new Date(anio, 0, 1);
+            }
+            return { inicio: formatoISO(inicio), fin: formatoISO(fin) };
+        }
+    
+        // Escuchador para los botones de presets de rangos
+        document.querySelectorAll('.rk-preset-btn').forEach(boton => {
+            boton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const preset = this.getAttribute('data-preset');
+                const rango = calcularRango(preset);
+    
+                // Limpiar restricciones temporales para evitar bloqueos mutuos
+                fpInicio.set("maxDate", null);
+                fpFin.set("minDate", null);
+    
+                // Setear fechas formateadas disparando los eventos internos
+                fpInicio.setDate(rango.inicio, true);
+                fpFin.setDate(rango.fin, true);
+                
+                // Re-aplicar validación dinámica posterior
+                fpFin.set("minDate", rango.inicio);
+                fpInicio.set("maxDate", rango.fin);
+            });
+        });
+    
+        // ---------------------------------------------------------------
+        // NOTIFICACIONES (TOAST)
+        // ---------------------------------------------------------------
+        function mostrarToast(mensaje, tipo = 'success') {
+            const toast = document.getElementById('rkToast');
+            const inner = document.getElementById('rkToastInner');
+            const texto = document.getElementById('rkToastText');
+            
+            if (!toast || !texto) return; // Evitar fallos si no se ha renderizado en el DOM
+            
+            texto.textContent = mensaje;
+            inner.className = 'rounded-xl px-5 py-3 shadow-lg text-sm font-semibold flex items-center gap-2 ' +
+                (tipo === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+    
+        // ---------------------------------------------------------------
+        // PROCESAMIENTO: BUSCAR / PREVIEW
+        // ---------------------------------------------------------------
+        btnBuscar.addEventListener('click', async () => {
+            const clienteId = selectCliente.value;
+            // Obtenemos los valores desde el input original (que Flatpickr mantiene actualizado en segundo plano)
+            const fechaInicio = inputInicio.value;
+            const fechaFin = inputFin.value;
+    
+            if (!clienteId || !fechaInicio || !fechaFin) {
+                mostrarToast('Selecciona un cliente y un rango de fechas completo.', 'error');
+                return;
+            }
+    
+            buscarSpinner.classList.remove('hidden');
+            mensajeVacio.classList.add('hidden');
+            panelResultados.classList.add('hidden');
+    
+            try {
+                const params = new URLSearchParams({ cliente_id: clienteId, fecha_inicio: fechaInicio, fecha_fin: fechaFin });
+                const resp = await fetch(`/admin_roka/api/consolidado/preview/?${params.toString()}`);
+                const data = await resp.json();
+    
+                if (data.status !== 'success') {
+                    mostrarToast(data.message || 'Error al consultar el consolidado.', 'error');
+                    return;
+                }
+    
+                if (data.total_inspecciones === 0) {
+                    mensajeVacio.classList.remove('hidden');
+                    return;
+                }
+    
+                renderResultados(data);
+                panelResultados.classList.remove('hidden');
+            } catch (err) {
+                mostrarToast('No se pudo conectar con el servidor.', 'error');
+            } finally {
+                buscarSpinner.classList.add('hidden');
+            }
+        });
+    
+        function renderResultados(data) {
+            document.getElementById('kpiTotalInspecciones').textContent = data.total_inspecciones;
+            document.getElementById('kpiTotalEvidencias').textContent = data.total_evidencias;
+            document.getElementById('kpiPromedio').textContent = data.promedio_general;
+            document.getElementById('gaugeNeedle').style.transform = `rotate(${data.angulo_gauge}deg)`;
+    
+            const tbody = document.getElementById('tablaInspecciones');
+            tbody.innerHTML = '';
+            data.inspecciones.forEach(i => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 text-slate-700">${i.fecha}</td>
+                    <td class="py-2 text-slate-500">${i.hora}</td>
+                    <td class="py-2 text-slate-700">${i.administrador}</td>
+                    <td class="py-2 text-right font-semibold text-slate-900">${i.total_bloques}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+    
+            renderCharts(data);
+        }
+    
+        function destruirCharts() {
+            Object.values(charts).forEach(c => c && c.destroy());
+            charts = {};
+        }
+    
+        function renderCharts(data) {
+            destruirCharts();
+            const gridStyle = { color: '#f1f5f9' };
+    
+            charts.evolucion = new Chart(document.getElementById('chartEvolucion'), {
+                type: 'line',
+                data: {
+                    labels: data.labels_meses,
+                    datasets: [{
+                        data: data.valores_meses,
+                        borderColor: '#1f7ca5',
+                        backgroundColor: 'rgba(31, 124, 165, 0.12)',
+                        borderWidth: 3,
+                        tension: 0.35,
+                        fill: true,
+                        pointBackgroundColor: '#1f7ca5'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle }, x: { grid: { display: false } } }
+                }
+            });
+    
+            charts.calificacion = new Chart(document.getElementById('chartCalificacion'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels_calificacion,
+                    datasets: [{
+                        data: data.valores_calificacion,
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderRadius: 8,
+                        maxBarThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle }, x: { grid: { display: false } } }
+                }
+            });
+    
+            charts.zonas = new Chart(document.getElementById('chartZonas'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels_zonas,
+                    datasets: [{
+                        data: data.valores_zonas,
+                        backgroundColor: '#1f7ca5',
+                        borderRadius: 8,
+                        maxBarThickness: 22
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle }, y: { grid: { display: false } } }
+                }
+            });
+    
+            charts.enfoques = new Chart(document.getElementById('chartEnfoques'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels_enfoques,
+                    datasets: [{
+                        data: data.valores_enfoques,
+                        backgroundColor: ['#1f7ca5', '#4fbfb4', '#f59e0b', '#94a3b8'],
+                        borderWidth: 4,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 12 } } }
+                }
+            });
+        }
+    
+        // ---------------------------------------------------------------
+        // SEGURIDAD Y ACCIÓN: GENERAR Y ENVIAR
+        // ---------------------------------------------------------------
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+    
+        btnGenerar.addEventListener('click', async () => {
+            const clienteId = selectCliente.value;
+            const fechaInicio = inputInicio.value;
+            const fechaFin = inputFin.value;
+            const conclusion = document.getElementById('inputConclusion').value;
+    
+            btnGenerar.disabled = true;
+            btnGenerar.classList.add('opacity-60');
+    
+            try {
+                const formData = new FormData();
+                formData.append('cliente_id', clienteId);
+                formData.append('fecha_inicio', fechaInicio);
+                formData.append('fecha_fin', fechaFin);
+                formData.append('conclusion_general', conclusion);
+    
+                const resp = await fetch('/admin_roka/consolidado/generar/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                    body: formData
+                });
+                const data = await resp.json();
+    
+                if (data.status === 'success') {
+                    mostrarToast(data.message, 'success');
+                } else {
+                    mostrarToast(data.message || 'Error al generar el consolidado.', 'error');
+                }
+            } catch (err) {
+                mostrarToast('No se pudo conectar con el servidor.', 'error');
+            } finally {
+                btnGenerar.disabled = false;
+                btnGenerar.classList.remove('opacity-60');
+            }
+        });
+    });
+</script>
+{% endblock %}

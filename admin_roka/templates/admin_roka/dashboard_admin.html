@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Analítico - Roka{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --rk-blue: #1f7ca5;
+        --rk-blue-dark: #0b2f42;
+        --rk-teal: #4fbfb4;
+        --rk-emerald: #10b981;
+        --rk-amber: #f59e0b;
+        --rk-red: #ef4444;
+    }
+
+    .font-display { font-family: 'Sora', ui-sans-serif, system-ui; }
+
+    .rk-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        opacity: 0;
+        transform: translateY(10px);
+        animation: rk-rise 0.5s ease-out forwards;
+    }
+
+    .rk-kpi-value {
+        font-family: 'Sora', ui-sans-serif, system-ui;
+        font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes rk-rise {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .rk-card { animation: none; opacity: 1; transform: none; }
+    }
+
+    .rk-gauge-needle {
+        transform-origin: 100px 100px;
+        transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .rk-badge {
+        font-family: 'Sora', ui-sans-serif, system-ui;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+    }
+</style>
+
+<div class="max-w-7xl mx-auto py-6 px-4 space-y-6">
+
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+            <h1 class="font-display text-2xl font-bold text-[var(--rk-blue-dark)] tracking-tight">Consolidado y Analítica General</h1>
+            <p class="text-sm text-slate-500 mt-1">Métricas clave e indicadores de rendimiento extraídos de las inspecciones en tiempo real.</p>
+        </div>
+        <span class="text-xs text-slate-400 font-medium">{{ total_clientes_evaluados }} clientes evaluados históricamente</span>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <div class="rk-card p-5" style="animation-delay: 0ms">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Inspecciones Totales</span>
+                <svg class="w-8 h-8 text-[var(--rk-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <p class="rk-kpi-value text-3xl font-bold text-slate-900 mt-3">{{ total_inspecciones }}</p>
+            <p class="text-xs text-slate-400 mt-1">Registradas en el histórico</p>
+        </div>
+
+        <div class="rk-card p-5" style="animation-delay: 60ms">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Evidencias Registradas</span>
+                <svg class="w-8 h-8 text-[var(--rk-teal)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+            </div>
+            <p class="rk-kpi-value text-3xl font-bold text-slate-900 mt-3">{{ total_evidencias }}</p>
+            <p class="text-xs text-slate-400 mt-1">Fotos y videos de soporte</p>
+        </div>
+
+        <div class="rk-card p-5" style="animation-delay: 120ms">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Cliente Destacado</span>
+                <span class="rk-badge text-[var(--rk-emerald)] bg-emerald-50 px-2 py-0.5 rounded-full">TOP</span>
+            </div>
+            {% if mejor_cliente %}
+            <p class="text-base font-bold text-slate-900 mt-3 truncate">{{ mejor_cliente.inspeccion__cliente__nombre }}</p>
+            <p class="text-xs text-[var(--rk-emerald)] font-semibold mt-1">Calificación {{ mejor_cliente.promedio }} / 5</p>
+            {% else %}
+            <p class="text-sm text-slate-400 mt-3">Sin datos suficientes</p>
+            {% endif %}
+        </div>
+
+        <div class="rk-card p-5" style="animation-delay: 180ms">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Cliente en Alerta</span>
+                <span class="rk-badge text-[var(--rk-red)] bg-red-50 px-2 py-0.5 rounded-full">ATENCIÓN</span>
+            </div>
+            {% if peor_cliente %}
+            <p class="text-base font-bold text-slate-900 mt-3 truncate">{{ peor_cliente.inspeccion__cliente__nombre }}</p>
+            <p class="text-xs text-[var(--rk-red)] font-semibold mt-1">Calificación {{ peor_cliente.promedio }} / 5</p>
+            {% else %}
+            <p class="text-sm text-slate-400 mt-3">Sin datos suficientes</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- GAUGE + RANKING ROW -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Signature element: quality gauge -->
+        <div class="rk-card p-5 lg:col-span-1 flex flex-col" style="animation-delay: 220ms">
+            <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Índice General de Calidad</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Promedio de todas las calificaciones registradas.</p>
+            <div class="flex-1 flex flex-col items-center justify-center mt-2">
+                <svg viewBox="0 0 200 110" class="w-full max-w-[220px]">
+                    <path d="M20,100 A80,80 0 0,1 60,30.72" fill="none" stroke="var(--rk-red)" stroke-width="14" stroke-linecap="round" />
+                    <path d="M60,30.72 A80,80 0 0,1 140,30.72" fill="none" stroke="var(--rk-amber)" stroke-width="14" stroke-linecap="round" />
+                    <path d="M140,30.72 A80,80 0 0,1 180,100" fill="none" stroke="var(--rk-emerald)" stroke-width="14" stroke-linecap="round" />
+                    <line x1="100" y1="100" x2="100" y2="28" stroke="var(--rk-blue-dark)" stroke-width="3" stroke-linecap="round"
+                          class="rk-gauge-needle" style="transform: rotate({{ angulo_gauge }}deg)" />
+                    <circle cx="100" cy="100" r="7" fill="var(--rk-blue-dark)" />
+                </svg>
+                <p class="font-display text-4xl font-bold text-slate-900 -mt-2">{{ promedio_general }}<span class="text-lg text-slate-400 font-medium">/5</span></p>
+                <p class="text-xs text-slate-400 mt-1">Escala: 1 Mala · 3 Regular · 5 Excelente</p>
+            </div>
+        </div>
+
+        <!-- Ranking table -->
+        <div class="rk-card p-5 lg:col-span-2" style="animation-delay: 260ms">
+            <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Ranking de Clientes</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Calificación promedio ordenada de mayor a menor desempeño.</p>
+            <div class="mt-4 space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                {% for c in ranking_clientes %}
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-semibold text-slate-400 w-5">{{ forloop.counter }}</span>
+                    <span class="text-sm text-slate-700 flex-1 truncate">{{ c.inspeccion__cliente__nombre }}</span>
+                    <div class="w-28 h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div class="h-full rounded-full"
+                             style="width: {% widthratio c.promedio 5 100 %}%; background:
+                                {% if c.promedio >= 4 %}var(--rk-emerald)
+                                {% elif c.promedio >= 2.5 %}var(--rk-amber)
+                                {% else %}var(--rk-red){% endif %};"></div>
+                    </div>
+                    <span class="text-sm font-bold text-slate-900 w-10 text-right">{{ c.promedio }}</span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-400">Aún no hay calificaciones registradas.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARTS GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <div class="rk-card p-5 flex flex-col justify-between" style="animation-delay: 300ms">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Evolución Mensual de Inspecciones</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Volumen de informes ejecutados mes a mes.</p>
+            </div>
+            <div class="mt-4 h-64 relative"><canvas id="chartEvolucion"></canvas></div>
+        </div>
+
+        <div class="rk-card p-5 flex flex-col justify-between" style="animation-delay: 340ms">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Frecuencia de Informes por Día</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Volumen total de reportes ejecutados según el día de la semana.</p>
+            </div>
+            <div class="mt-4 h-64 relative"><canvas id="chartDias"></canvas></div>
+        </div>
+
+        <div class="rk-card p-5 flex flex-col justify-between" style="animation-delay: 380ms">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Top 10 Calificación por Cliente</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Nivel de desempeño por cliente (Escala: 1 Mala - 3 Regular - 5 Excelente).</p>
+            </div>
+            <div class="mt-4 h-64 relative"><canvas id="chartCalificacion"></canvas></div>
+        </div>
+
+        <div class="rk-card p-5 flex flex-col justify-between" style="animation-delay: 420ms">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Distribución General de Calificaciones</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Proporción de conceptos evaluados como Excelente, Regular o Mala.</p>
+            </div>
+            <div class="mt-4 h-64 relative"><canvas id="chartDistribucionCalif"></canvas></div>
+        </div>
+
+        <div class="rk-card p-5 flex flex-col justify-between" style="animation-delay: 460ms">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Zonas e Infraestructuras Evaluadas</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Distribución total de conceptos técnicos revisados en los bloques.</p>
+            </div>
+            <div class="mt-4 h-64 relative"><canvas id="chartZonas"></canvas></div>
+        </div>
+
+        <div class="rk-card p-5 flex flex-col justify-between" style="animation-delay: 500ms">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 tracking-wide uppercase">Distribución de Enfoques Críticos</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Proporción temática de las auditorías en campo.</p>
+            </div>
+            <div class="mt-4 h-64 relative flex items-center justify-center">
+                <div class="w-full max-w-[230px]"><canvas id="chartEnfoques"></canvas></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    Chart.defaults.font.family = 'Plus Jakarta Sans, ui-sans-serif, system-ui';
+    Chart.defaults.font.size = 11;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.color = '#64748b';
+
+    const gridStyle = { color: '#f1f5f9' };
+
+    // 0. Evolución mensual (line)
+    new Chart(document.getElementById('chartEvolucion'), {
+        type: 'line',
+        data: {
+            labels: {{ labels_meses|safe }},
+            datasets: [{
+                label: 'Inspecciones',
+                data: {{ valores_meses|safe }},
+                borderColor: '#1f7ca5',
+                backgroundColor: 'rgba(31, 124, 165, 0.12)',
+                borderWidth: 3,
+                tension: 0.35,
+                fill: true,
+                pointBackgroundColor: '#1f7ca5',
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 1. Días de informes (bar)
+    new Chart(document.getElementById('chartDias'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels_dias|safe }},
+            datasets: [{
+                label: 'Informes Realizados',
+                data: {{ valores_dias|safe }},
+                backgroundColor: '#1f7ca5',
+                borderRadius: 8,
+                maxBarThickness: 32
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. Calificación por cliente (horizontal bar, top 10)
+    new Chart(document.getElementById('chartCalificacion'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels_clientes|safe }},
+            datasets: [{
+                label: 'Puntaje Promedio',
+                data: {{ valores_clientes|safe }},
+                backgroundColor: '#4fbfb4',
+                borderRadius: 8,
+                maxBarThickness: 22
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { min: 0, max: 5, grid: gridStyle },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 3. Distribución general de calificaciones (bar semántico)
+    new Chart(document.getElementById('chartDistribucionCalif'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels_calificacion|safe }},
+            datasets: [{
+                label: 'Conceptos evaluados',
+                data: {{ valores_calificacion|safe }},
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderRadius: 8,
+                maxBarThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 4. Zonas inspeccionadas (bar horizontal — categórico, no temporal)
+    new Chart(document.getElementById('chartZonas'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels_zonas|safe }},
+            datasets: [{
+                label: 'Revisiones',
+                data: {{ valores_zonas|safe }},
+                backgroundColor: '#1f7ca5',
+                borderRadius: 8,
+                maxBarThickness: 22
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 5. Enfoques (donut)
+    new Chart(document.getElementById('chartEnfoques'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ labels_enfoques|safe }},
+            datasets: [{
+                data: {{ valores_enfoques|safe }},
+                backgroundColor: ['#1f7ca5', '#4fbfb4', '#f59e0b', '#94a3b8'],
+                borderWidth: 4,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 8, padding: 12 } }
+            }
+        }
+    });
+</script>
+{% endblock %}

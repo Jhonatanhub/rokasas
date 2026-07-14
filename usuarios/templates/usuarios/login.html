@@ -1,0 +1,204 @@
+{% load static %}
+{% load tailwind_tags %}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link class="transition-all" rel="icon" href="{% static 'img/Roka_logo_azul.png' %}">
+    <title>Iniciar Sesión</title>
+    {% tailwind_css %}
+
+    <style>
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-slate-100 via-white to-cyan-50 flex items-center justify-center selection:bg-[#4fbfb4]/20 relative overflow-hidden">
+
+    <div class="fixed top-6 right-6 z-50 flex flex-col gap-3 w-full max-w-sm px-4 sm:px-0">
+        {% if form.errors %}
+        <div id="error-toast"
+            class="w-full bg-white rounded-2xl shadow-xl border border-red-100 p-4 transform translate-x-full opacity-0 transition-all duration-500 ease-out border-l-4 border-l-red-500 flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 p-1.5 bg-red-100 rounded-xl text-red-600 shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Error de acceso</h3>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">Usuario o contraseña incorrectos.</p>
+                </div>
+            </div>
+            <button type="button" onclick="dismissToast()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div id="bg-blob-1" class="absolute -top-40 -left-40 w-96 h-96 bg-[#1f7ca5]/15 rounded-full blur-3xl transform scale-75 opacity-0 transition-all duration-1000 ease-out"></div>
+        <div id="bg-blob-2" class="absolute bottom-0 right-0 w-[450px] h-[450px] bg-[#4fbfb4]/20 rounded-full blur-3xl transform scale-75 opacity-0 transition-all duration-1000 ease-out"></div>
+    </div>
+
+    <div class="relative w-full max-w-md px-6">
+        <div id="login-card"
+            class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform opacity-0 translate-y-4 transition-all duration-700 ease-out">
+
+            <div class="bg-gradient-to-r from-[#1f7ca5] to-[#4fbfb4] p-8 text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-black/5 pointer-events-none"></div>
+                <div class="w-20 h-20 mx-auto bg-white rounded-full flex items-center justify-center shadow-lg relative z-10">
+                    <img src="{% static 'img/Roka_logo_azul.png' %}" class="w-14">
+                </div>
+                <h1 class="text-3xl font-bold text-white mt-5 relative z-10 tracking-tight">Bienvenido</h1>
+                <p class="text-cyan-50/90 mt-2 relative z-10 text-sm font-medium tracking-wide uppercase">Sistema Corporativo</p>
+            </div>
+
+            <div class="p-8">
+                <form method="POST" class="space-y-6">
+                    {% csrf_token %}
+
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600 tracking-wide">Usuario</label>
+                        <div class="mt-2 relative flex items-center group">
+                            <div class="absolute left-4 pointer-events-none text-slate-400 group-focus-within:text-[#1f7ca5] transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <input type="text" name="username" autofocus placeholder="Ingrese su usuario"
+                                class="w-full rounded-xl border border-slate-300 pl-12 pr-4 py-3 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/20 outline-none transition text-slate-800 placeholder-slate-400 bg-slate-50/50 focus:bg-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600 tracking-wide">Contraseña</label>
+                        <div class="mt-2 relative flex items-center group">
+                            <div class="absolute left-4 pointer-events-none text-slate-400 group-focus-within:text-[#1f7ca5] transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+
+                            <input id="password" type="password" name="password" placeholder="Ingrese su contraseña"
+                                class="w-full rounded-xl border border-slate-300 pl-12 pr-12 py-3 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/20 outline-none transition text-slate-800 placeholder-slate-400 bg-slate-50/50 focus:bg-white">
+
+                            <button type="button" id="togglePassword" class="absolute right-4 text-slate-400 hover:text-[#1f7ca5] focus:outline-none transition-colors">
+                                <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path id="eyeOpenPath" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path id="eyeBodyPath" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    <path id="eyeSlashPath" class="hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none group">
+                            <input type="checkbox" class="rounded text-[#4fbfb4] focus:ring-[#4fbfb4] border-slate-300 w-4 h-4 transition duration-200">
+                            <span class="group-hover:text-slate-800 transition-colors">Recordarme</span>
+                        </label>
+                        <a href="#" class="text-sm font-semibold text-[#1f7ca5] hover:text-[#4fbfb4] transition-colors">¿Olvidó su contraseña?</a>
+                    </div>
+
+                    <button class="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#1f7ca5] to-[#4fbfb4] hover:scale-[1.01] hover:shadow-lg hover:shadow-cyan-500/10 active:scale-[0.99] transition-all duration-300 shadow-md">
+                        Iniciar Sesión
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-6 text-sm text-slate-400 font-medium">
+            © 2026 Sistema Corporativo
+        </div>
+    </div>
+
+    <script>
+        // Lógica de mostrar/ocultar contraseña
+        const btn = document.getElementById('togglePassword');
+        const input = document.getElementById('password');
+        const eyeSlashPath = document.getElementById('eyeSlashPath');
+
+        btn.onclick = () => {
+            if (input.type === "password") {
+                input.type = "text";
+                eyeSlashPath.classList.remove('hidden');
+            } else {
+                input.type = "password";
+                eyeSlashPath.classList.add('hidden');
+            }
+        }
+
+        // Lógica de Animación de Carga Global (Efecto Premium)
+        window.addEventListener('DOMContentLoaded', () => {
+            const card = document.getElementById('login-card');
+            const blob1 = document.getElementById('bg-blob-1');
+            const blob2 = document.getElementById('bg-blob-2');
+
+            // Ejecuta la transición de la tarjeta de inicio de sesión
+            setTimeout(() => {
+                card.classList.remove('opacity-0', 'translate-y-4');
+                card.classList.add('opacity-100', 'translate-y-0');
+            }, 150);
+
+            // Transición suave expandiendo los elementos del fondo
+            setTimeout(() => {
+                if(blob1 && blob2) {
+                    blob1.classList.remove('scale-75', 'opacity-0');
+                    blob1.classList.add('scale-100', 'opacity-100');
+                    blob2.classList.remove('scale-75', 'opacity-0');
+                    blob2.classList.add('scale-100', 'opacity-100');
+                }
+            }, 300);
+
+            // Manejo de errores (Toasts) si existen al enviar el formulario
+            {% if form.errors %}
+            // 1. Vibración sutil de la tarjeta del login sin alterar su tamaño
+            setTimeout(() => {
+                card.classList.add('animate-shake', 'border-red-200');
+                setTimeout(() => card.classList.remove('animate-shake'), 500);
+            }, 850); // Se retrasa la vibración para que ocurra después de la carga inicial
+
+            // 2. Transición suave de entrada del Toast flotante (Slide In)
+            const toast = document.getElementById('error-toast');
+            if (toast) {
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full', 'opacity-0');
+                    toast.classList.add('translate-x-0', 'opacity-100');
+                }, 900);
+
+                // De forma automática desaparecerá tras 5 segundos
+                setTimeout(() => {
+                    dismissToast();
+                }, 6000);
+            }
+            {% endif %}
+        });
+
+        // Función para cerrar el Toast de forma fluida (Slide Out)
+        function dismissToast() {
+            const toast = document.getElementById('error-toast');
+            if (toast) {
+                toast.classList.remove('translate-x-0', 'opacity-100');
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 500);
+            }
+        }
+    </script>
+</body>
+
+</html>

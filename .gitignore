@@ -1,0 +1,100 @@
+##################################
+# Python
+##################################
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+##################################
+# Django
+##################################
+*.log
+local_settings.py
+.env
+.env.*
+!.env.example
+
+# SQLite
+db.sqlite3
+*.sqlite3
+
+# Media files (uploads)
+media/
+uploads/
+
+# Static collected
+staticfiles/
+static_root/
+
+##################################
+# Virtual environments
+##################################
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+##################################
+# IDEs & Editors
+##################################
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+##################################
+# OS files
+##################################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+##################################
+# Node / Frontend
+##################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.cache/
+.parcel-cache/
+
+##################################
+# Coverage / Testing
+##################################
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+##################################
+# Celery / Redis
+##################################
+celerybeat-schedule
+celerybeat.pid
+
+##################################
+# Jupyter
+##################################
+.ipynb_checkpoints/
+
+##################################
+# Secrets
+##################################
+*.pem
+*.key
+*.crt
+
+##################################
+# Temporary files
+##################################
+*.tmp
+*.swp
+*.bak
+*.old

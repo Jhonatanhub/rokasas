@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Cliente - Roka{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200/80 my-4 md:my-6 mx-2 sm:mx-auto">
+
+    <div class="bg-gradient-to-r from-[#1f7ca5] to-[#4fbfb4] px-4 py-6 sm:px-8 sm:py-7">
+        <h1 class="text-xl sm:text-2xl font-bold text-white tracking-wide text-center">
+            Registrar Nuevo Cliente
+        </h1>
+        <p class="text-white/80 mt-1.5 text-xs sm:text-sm text-center max-w-2xl mx-auto">
+            Configura manualmente los datos maestros del nuevo cliente y sus contactos de notificación. Los campos marcados con <span class="text-red-300 font-bold">*</span> son obligatorios.
+        </p>
+    </div>
+
+    <form action="{% url 'guardar_cliente' %}" method="POST" class="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8" id="form-cliente-manual">
+        {% csrf_token %}
+        
+        <section aria-labelledby="general-info-title">
+            <h2 id="general-info-title"
+                class="text-base sm:text-lg font-bold text-[#1f7ca5] border-b-2 border-[#4fbfb4]/40 pb-2 mb-4 sm:mb-6 flex items-center gap-2">
+                <span>Información General</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div class="md:col-span-2">
+                    <label for="nombre" class="block text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
+                        Nombre del Cliente / Razón Social <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="nombre" name="nombre" value="{{ nombre|default:'' }}" required
+                           class="w-full rounded-xl border border-slate-300 px-3 py-2 sm:px-4 sm:py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800 text-sm sm:text-base">
+                </div>
+
+                <div>
+                    <label for="nit" class="block text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
+                        NIT / Identificación <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="nit" name="nit" value="{{ nit|default:'' }}" required
+                           class="w-full rounded-xl border border-slate-300 px-3 py-2 sm:px-4 sm:py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800 text-sm sm:text-base">
+                </div>
+
+                <div>
+                    <label for="administrador" class="block text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
+                        Administrador Encargado
+                    </label>
+                    <input type="text" id="administrador" name="administrador" value="{{ administrador|default:'' }}"
+                           class="w-full rounded-xl border border-slate-300 px-3 py-2 sm:px-4 sm:py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800 text-sm sm:text-base">
+                </div>
+            </div>
+        </section>
+
+        <section aria-labelledby="correos-title">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 sm:mb-6 border-b border-slate-100 pb-3">
+                    <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <svg class="w-5 h-5 text-[#1f7ca5] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Correos de Notificación <span class="text-red-500">*</span>
+                    </label>
+                    
+                    <button type="button" id="btn-add-correo" 
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-[#4fbfb4] hover:bg-[#3ea399] px-3 py-2.5 sm:py-2 rounded-lg transition-colors shadow-sm">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Agregar Correo
+                    </button>
+                </div>
+
+                <div id="wrapper-correos" class="space-y-4">
+                    <div class="fila-correo flex flex-col sm:flex-row sm:items-end gap-3 bg-slate-50/70 p-3 sm:p-4 rounded-xl border border-slate-200/60 relative group transition-all hover:bg-slate-50">
+                        <div class="flex-1 w-full">
+                            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Dirección Electrónica</label>
+                            <input type="email" name="correos[]" placeholder="ejemplo@correo.com" required
+                                   class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 sm:px-4 sm:py-2 text-sm text-slate-800 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all">
+                        </div>
+                        <div class="flex justify-end sm:pt-0">
+                            <!-- En móviles se ve el botón por defecto; en escritorio hereda el hover del padre -->
+                            <button type="button" onclick="eliminarFila(this)" 
+                                    class="p-2 sm:p-2.5 rounded-lg bg-red-50 sm:bg-transparent text-red-500 sm:text-slate-400 hover:text-red-500 sm:opacity-0 group-hover:opacity-100 transition-all focus:opacity-100 flex items-center justify-center gap-1 text-xs sm:text-sm font-medium w-full sm:w-auto">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span class="sm:hidden">Eliminar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 sm:pt-6 border-t border-slate-200">
+            <button type="button" onclick="window.history.back();"
+                class="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-800 active:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200/60 transition-all text-center text-sm sm:text-base">
+                Cancelar
+            </button>
+
+            <button type="submit"
+                class="w-full sm:w-auto px-8 py-3 rounded-xl bg-[#1f7ca5] text-white font-semibold hover:bg-[#1a688b] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-[#1f7ca5]/20 transition-all shadow-md shadow-[#1f7ca5]/10 text-center text-sm sm:text-base">
+                Guardar Cliente
+            </button>
+        </div>
+    </form>
+</div>
+
+<div id="toast-backdrop" class="toast-backdrop"></div>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+    let formulario;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        formulario = document.getElementById('form-cliente-manual');
+        initEnvioFormulario();
+    });
+
+    // ------------------ MANEJO DE CORREOS DINÁMICOS ------------------
+    document.getElementById('btn-add-correo').addEventListener('click', function() {
+        const wrapper = document.getElementById('wrapper-correos');
+        const filas = wrapper.getElementsByClassName('fila-correo');
+        
+        const nuevaFila = filas[0].cloneNode(true);
+        const input = nuevaFila.querySelector('input[type="email"]');
+        input.value = '';
+        input.removeAttribute('required'); 
+        input.classList.remove('border-red-500', 'ring-red-500/15');
+        
+        wrapper.appendChild(nuevaFila);
+    });
+
+    function eliminarFila(button) {
+        const wrapper = document.getElementById('wrapper-correos');
+        const filas = wrapper.getElementsByClassName('fila-correo');
+        
+        if (filas.length > 1) {
+            button.closest('.fila-correo').remove();
+        } else {
+            alert('Debe conservar al menos una dirección de correo.');
+        }
+    }
+
+    // ------------------ SISTEMA DE ALERTAS TOAST ------------------
+    function mostrarToast(tipo, mensaje, duracion = null) {
+        const container = document.getElementById('toast-container');
+        const backdrop = document.getElementById('toast-backdrop');
+        if (!container) return;
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+
+        if (duracion === null) {
+            duracion = tipo === 'success' ? 5500 : 6000;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${tipo}`;
+
+        const iconoExito = `<svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25 4.5-4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`;
+
+        const iconoError = `<svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`;
+
+        const titulo = tipo === 'success' ? 'Cliente registrado!' : 'Ocurrió un error';
+        const icono = tipo === 'success' ? iconoExito : iconoError;
+
+        toast.innerHTML = `
+            <div class="toast-icon-wrap">${icono}</div>
+            <div class="toast-content">
+                <p class="toast-title">${titulo}</p>
+                <p class="toast-message">${mensaje}</p>
+            </div>
+            <button type="button" class="toast-close" aria-label="Cerrar">
+                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="toast-progress" style="animation-duration: ${duracion}ms"></div>
+        `;
+
+        container.appendChild(toast);
+
+        if (backdrop) {
+            backdrop.classList.add('toast-backdrop-show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        requestAnimationFrame(() => toast.classList.add('toast-show'));
+
+        const cerrar = () => {
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+                if (backdrop && container.children.length === 0) {
+                    backdrop.classList.remove('toast-backdrop-show');
+                    document.body.style.overflow = '';
+                }
+            }, { once: true });
+        };
+
+        const timer = setTimeout(cerrar, duracion);
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+            clearTimeout(timer);
+            cerrar();
+        });
+    }
+
+    // ------------------ ENVÍO ASÍNCRONO DEL FORMULARIO ------------------
+    function initEnvioFormulario() {
+        if (!formulario) return;
+
+        formulario.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(formulario);
+            const url = formulario.getAttribute('action') || window.location.pathname; 
+            const submitBtn = formulario.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg> Guardando...
+            `;
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(res => {
+                if (res.status === 201 || res.body.status === 'success' || res.status === 200) {
+                    mostrarToast('success', res.body.message || 'El cliente ha sido creado exitosamente.');
+                    formulario.reset();
+                    
+                    const wrapper = document.getElementById('wrapper-correos');
+                    while (wrapper.children.length > 1) {
+                        wrapper.removeChild(wrapper.lastChild);
+                    }
+                } else {
+                    mostrarToast('error', res.body.message || 'No se pudo procesar la solicitud.');
+                }
+            })
+            .catch(err => {
+                console.error("Error en el envío:", err);
+                mostrarToast('error', 'Ocurrió un error de red al intentar guardar el cliente.');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+</script>
+{% endblock %}
