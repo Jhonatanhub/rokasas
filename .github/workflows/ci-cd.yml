@@ -1,0 +1,66 @@
+name: Deploy RokaSAS Django
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+
+  deploy:
+
+    runs-on: self-hosted
+
+
+    steps:
+
+      - name: Actualizar código
+        run: |
+          cd /var/www/rokasas
+
+          git fetch origin
+
+          git reset --hard origin/main
+
+
+      - name: Instalar dependencias
+        run: |
+          cd /var/www/rokasas
+
+          source venv/bin/activate
+
+          pip install -r requirements.txt
+
+
+      - name: Verificar Django
+        run: |
+          cd /var/www/rokasas
+
+          source venv/bin/activate
+
+          python manage.py check
+
+
+      - name: Ejecutar migraciones
+        run: |
+          cd /var/www/rokasas
+
+          source venv/bin/activate
+
+          python manage.py migrate --noinput
+
+
+      - name: Actualizar archivos estáticos
+        run: |
+          cd /var/www/rokasas
+
+          source venv/bin/activate
+
+          python manage.py collectstatic --noinput
+
+
+      - name: Reiniciar servicios
+        run: |
+          sudo systemctl restart gunicorn
+          sudo systemctl restart http
