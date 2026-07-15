@@ -25,17 +25,35 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ffp5-+4-22-w!_e46@8#1c=l*8lbusox=62crg2oirrgj55nxx'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
+
+ALLOWED_HOSTS = [
+    'gestion-reporte.rokasas.com',
+    'www.gestion-reporte.rokasas.com',
+    '127.0.0.1',
+    'localhost'
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://gestion-reporte.rokasas.com',
+    'https://www.gestion-reporte.rokasas.com',
+]
+
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
 
 # Habilitar/Deshabilitar la recarga automática del navegador en desarrollo (django-browser-reload)
-# Por defecto se establece en False para evitar recargas molestas durante el uso o carga de archivos.
 ENABLE_BROWSER_RELOAD = os.getenv('ENABLE_BROWSER_RELOAD', 'False').lower() == 'true'
-
-ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -46,7 +64,6 @@ INSTALLED_APPS = [
     'usuarios',
     'tailwind',
     'theme',
-    'sslserver',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -68,7 +85,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-if ENABLE_BROWSER_RELOAD:
+if DEBUG and ENABLE_BROWSER_RELOAD:
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
 
 ROOT_URLCONF = 'roka.urls'
@@ -162,8 +179,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TAILWIND_APP_NAME = 'theme'
 
-# NPM_BIN_PATH =  "/usr/bin/npm"
-NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
+NPM_BIN_PATH =  "/usr/bin/npm"
+# NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
 
 LOGIN_URL = 'login'
 
