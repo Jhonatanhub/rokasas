@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = [
     'gestion-reporte.rokasas.com',
@@ -40,7 +40,8 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = [
     'https://gestion-reporte.rokasas.com',
     'https://www.gestion-reporte.rokasas.com',
-]
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',]
 
 
 if not DEBUG:
@@ -50,6 +51,11 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+else:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    
 
 
 # Habilitar/Deshabilitar la recarga automática del navegador en desarrollo (django-browser-reload)
@@ -64,6 +70,7 @@ INSTALLED_APPS = [
     'usuarios',
     'tailwind',
     'theme',
+    "storages",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -179,12 +186,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TAILWIND_APP_NAME = 'theme'
 
-NPM_BIN_PATH =  "/usr/bin/npm"
-# NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
+# NPM_BIN_PATH =  "/usr/bin/npm"
+NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
 
 LOGIN_URL = 'login'
 
-LOGIN_REDIRECT_URL = 'form_servicios'
+LOGIN_REDIRECT_URL = 'inicio'
 
 LOGOUT_REDIRECT_URL = 'login'
 
@@ -195,3 +202,41 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'jhonatan.usuga@sao6.com.co'
 EMAIL_HOST_PASSWORD = 'jhonatan1032010812*'
 DEFAULT_FROM_EMAIL = f"Reportes Empresa <{EMAIL_HOST_USER}>"
+
+
+USE_CLOUDFLARE_R2 = os.getenv("USE_CLOUDFLARE_R2", "False") == "True"
+
+if USE_CLOUDFLARE_R2:
+
+    AWS_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
+
+    AWS_S3_ENDPOINT_URL = (
+        f"https://{os.getenv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+    )
+
+    AWS_S3_REGION_NAME = "auto"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_S3_ADDRESSING_STYLE = "path"
+
+    AWS_QUERYSTRING_AUTH = False
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_VERIFY = True
+
+    # Dominio público de R2 (Public Development URL del bucket).
+    # Solo aplica a storages que NO fijen custom_domain=False explícitamente
+    # (es decir, solo a EvidenciasStorage; los storages de PDF lo ignoran).
+    R2_PUBLIC_URL = os.getenv(
+        "R2_PUBLIC_URL",
+        "https://pub-8d89dd1383aa47d8b48f152ff3b440ab.r2.dev",
+    )
+    AWS_S3_CUSTOM_DOMAIN = R2_PUBLIC_URL.replace("https://", "").replace("http://", "")
+
+    MEDIA_URL = f"{R2_PUBLIC_URL}/"
+
+else:
+
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"

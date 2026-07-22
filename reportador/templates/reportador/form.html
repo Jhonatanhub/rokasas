@@ -391,30 +391,33 @@
     const IMAGE_MAX_WIDTH = 1200;
     const IMAGE_QUALITY = 0.75;
     let reconocimiento = null;
-    let idCampoActivo = null;   
+    let idCampoActivo = null;
     let fallbackRestartTimeout = null;
-
+    let detencionManual = false; // NUEVO: distingue "usuario detuvo" de "se cortó solo"
+     
+    // Detección simple de móvil: en Android, continuous=true no entrega resultados de forma confiable
+    const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+     
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
+     
     if (SpeechRecognition) {
         reconocimiento = new SpeechRecognition();
-        reconocimiento.lang = 'es-ES'; // Configurado para español
-        reconocimiento.continuous = true; // Permite pausas largas sin cortarse
-        reconocimiento.interimResults = false; // Solo devuelve texto definitivo
-
-        // Evento cuando detecta texto hablado
+        reconocimiento.lang = 'es-ES';
+        // FIX: en móvil forzamos continuous=false y lo relanzamos nosotros mismos en onend.
+        // continuous=true en Chrome Android no dispara onresult de forma confiable.
+        reconocimiento.continuous = !esMovil;
+        reconocimiento.interimResults = false;
+     
         reconocimiento.onresult = (event) => {
             const resultadoIndex = event.resultIndex;
             const textoDictado = event.results[resultadoIndex][0].transcript;
-            
+     
             const textarea = document.getElementById(idCampoActivo);
             if (textarea) {
-                // MEJORA: Insertar en la posición del cursor (no siempre al final)
                 const startPos = textarea.selectionStart;
                 const endPos = textarea.selectionEnd;
                 const valOriginal = textarea.value;
-
-                // Capitalizar la primera letra si inicia el párrafo, sigue a un punto o está vacío
+     
                 let textoFinal = textoDictado.trim();
                 const textoPrevio = valOriginal.substring(0, startPos).trim();
                 if (startPos === 0 || textoPrevio.endsWith('.') || textoPrevio === '') {
@@ -422,31 +425,35 @@
                 } else {
                     textoFinal = textoFinal.charAt(0).toLowerCase() + textoFinal.slice(1);
                 }
-
-                // Generar los espacios adecuados alrededor del texto insertado
+     
                 const espacioAntes = (startPos > 0 && !valOriginal.charAt(startPos - 1).match(/\s/)) ? " " : "";
                 const espacioDespues = (endPos < valOriginal.length && !valOriginal.charAt(endPos).match(/\s/)) ? " " : "";
-
-                textarea.value = valOriginal.substring(0, startPos) + 
-                                 espacioAntes + 
-                                 textoFinal + 
-                                 espacioDespues + 
+     
+                textarea.value = valOriginal.substring(0, startPos) +
+                                 espacioAntes +
+                                 textoFinal +
+                                 espacioDespues +
                                  valOriginal.substring(endPos);
-
-                // Colocar el cursor justo después de la inserción
+     
                 const nuevaPosCursor = startPos + espacioAntes.length + textoFinal.length;
                 textarea.selectionStart = textarea.selectionEnd = nuevaPosCursor;
-                
+     
                 textarea.dispatchEvent(new Event('input'));
             }
         };
-
-        // Manejo del cierre inesperado o fin del dictado (por pausas o silencio prolongado)
+     
         reconocimiento.onend = () => {
-            // Si idCampoActivo sigue configurado, significa que se cortó por silencio involuntario
+            // Si el usuario detuvo manualmente, no reiniciamos bajo ninguna circunstancia
+            if (detencionManual) {
+                detencionManual = false;
+                return;
+            }
+     
+            // Si sigue "activo" un campo, significa que se cortó solo (por silencio,
+            // o porque en móvil continuous=false termina tras cada frase) -> relanzamos
             if (idCampoActivo) {
                 fallbackRestartTimeout = setTimeout(() => {
-                    if (idCampoActivo) {
+                    if (idCampoActivo && !detencionManual) {
                         try {
                             reconocimiento.start();
                         } catch (e) {
@@ -454,10 +461,10 @@
                             idCampoActivo = null;
                         }
                     }
-                }, 400);
+                }, esMovil ? 150 : 400); // en móvil el reinicio debe ser casi inmediato
             }
         };
-
+     
         reconocimiento.onerror = (event) => {
             console.error("Error de reconocimiento de voz:", event.error);
             if (event.error === 'not-allowed') {
@@ -468,53 +475,74 @@
                     cambiarEstiloBotón(idCampo, false);
                 }
             }
+            // 'no-speech' y 'aborted' son normales en móvil entre frases, no mostramos nada,
+            // dejamos que onend se encargue del reinicio.
         };
     } else {
         console.warn("Este navegador no soporta el reconocimiento de voz nativo.");
     }
-
-    // Función para activar / desactivar el dictado
-    function toggleDictado(idCampo) {
+     
+    // FIX: pedimos el permiso de micrófono explícitamente ANTES de llamar a start().
+    // Esto evita el "primer clic falla, segundo clic no captura nada": ya no arrancamos
+    // el reconocimiento mientras el permiso sigue en negociación.
+    async function asegurarPermisoMicrofono() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            return true; // no podemos verificar, dejamos que start() lo intente igual
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop()); // solo pedíamos el permiso
+            return true;
+        } catch (e) {
+            mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
+            return false;
+        }
+    }
+     
+    async function toggleDictado(idCampo) {
         if (!reconocimiento) {
             mostrarToast('error', "Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
             return;
         }
-
+     
         clearTimeout(fallbackRestartTimeout);
-
+     
         // Si ya está escuchando el mismo campo, lo detiene manualmente
         if (idCampoActivo === idCampo) {
+            detencionManual = true;
             const anteriorCampo = idCampoActivo;
             idCampoActivo = null;
             reconocimiento.stop();
             cambiarEstiloBotón(anteriorCampo, false);
-            mostrarToast('success', 'Micrófono desactivado.');
-            return;
+            return; // sin toast
         }
-
+     
         // Si está escuchando otro campo, detiene el anterior primero
         if (idCampoActivo) {
+            detencionManual = true;
             const anteriorCampo = idCampoActivo;
             reconocimiento.stop();
             cambiarEstiloBotón(anteriorCampo, false);
         }
-
-        // Activa el nuevo campo
+     
+        const permisoOk = await asegurarPermisoMicrofono();
+        if (!permisoOk) return;
+     
+        detencionManual = false;
         idCampoActivo = idCampo;
         cambiarEstiloBotón(idCampo, true);
         try {
             reconocimiento.start();
-            mostrarToast('success', 'Micrófono activo. Dicta ahora.');
+            // sin toast: el botón cambiando a "Grabando..." ya es la señal visual
         } catch (e) {
             console.warn("Speech recognition ya iniciado o fallido:", e);
         }
     }
-
-    // Cambia visualmente el botón para avisar que está escuchando
+     
     function cambiarEstiloBotón(idCampo, estaEscuchando) {
         const btn = document.getElementById(`btn-voz-${idCampo}`);
         if (!btn) return;
-
+     
         if (estaEscuchando) {
             btn.classList.remove('bg-slate-100', 'text-slate-600');
             btn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
@@ -525,24 +553,23 @@
             btn.querySelector('span').innerText = 'Dictar';
         }
     }
-
+     
     // --- FUNCIÓN DE CORRECCIÓN DE ORTOGRAFÍA ---
     async function corregirTexto(idCampo) {
         const textarea = document.getElementById(idCampo);
         if (!textarea) return;
         const textoOriginal = textarea.value.trim();
-    
+     
         if (!textoOriginal) {
             mostrarToast('error', "El campo está vacío, escribe o dicta algo primero.");
             return;
         }
-    
-        // Cambiar estado del botón a "Procesando"
+     
         const boton = event.currentTarget;
         const textoOriginalBoton = boton.innerHTML;
         boton.disabled = true;
         boton.innerHTML = `⏳ Corrigiendo...`;
-    
+     
         try {
             const response = await fetch('/reportador/api/corregir-texto/', {
                 method: 'POST',
@@ -552,30 +579,18 @@
                 },
                 body: JSON.stringify({ texto: textoOriginal })
             });
-    
+     
             if (!response.ok) throw new Error('Error en el servidor');
-    
+     
             const data = await response.json();
-            
-            // Insertamos el texto corregido localmente por el backend
+     
             textarea.value = data.textoCorregido;
-            
-            // Lanzamos el evento input por si tienes contadores de caracteres activos
             textarea.dispatchEvent(new Event('input'));
-
-            // Notificación sobre los resultados de la corrección
-            const errores = data.erroresEncontrados || 0;
-            if (errores > 0) {
-                mostrarToast('success', `✨ Texto corregido. Se realizaron ${errores} correcciones.`);
-            } else {
-                mostrarToast('success', '✨ Tu texto no requiere correcciones. ¡Está excelente!');
-            }
-    
+     
         } catch (error) {
             console.error("Error:", error);
             mostrarToast('error', "No se pudo realizar la corrección en este momento.");
         } finally {
-            // Restaurar el botón
             boton.disabled = false;
             boton.innerHTML = textoOriginalBoton;
         }

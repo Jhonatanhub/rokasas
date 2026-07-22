@@ -75,17 +75,17 @@
         border: 1px solid #e2e8f0 !important;
         font-family: inherit !important;
     }
-    .flatpickr-day.selected, 
-    .flatpickr-day.startRange, 
-    .flatpickr-day.endRange, 
-    .flatpickr-day.selected.inRange, 
-    .flatpickr-day.startRange.inRange, 
-    .flatpickr-day.endRange.inRange, 
-    .flatpickr-day.selected:focus, 
-    .flatpickr-day.startRange:focus, 
-    .flatpickr-day.endRange:focus, 
-    .flatpickr-day.selected:hover, 
-    .flatpickr-day.startRange:hover, 
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange,
+    .flatpickr-day.selected.inRange,
+    .flatpickr-day.startRange.inRange,
+    .flatpickr-day.endRange.inRange,
+    .flatpickr-day.selected:focus,
+    .flatpickr-day.startRange:focus,
+    .flatpickr-day.endRange:focus,
+    .flatpickr-day.selected:hover,
+    .flatpickr-day.startRange:hover,
     .flatpickr-day.endRange:hover {
         background: #4fbfb4 !important; /* Tu color corporativo Teal */
         border-color: #4fbfb4 !important;
@@ -115,10 +115,10 @@
                     Cliente <span class="text-red-500">*</span>
                 </label>
                 <select id="cliente_select" placeholder="Escribe para buscar cliente..." class="w-full"></select>
-                
+
                 <input type="hidden" id="selectCliente" name="cliente_id" required>
             </div>
-            
+
             <div class="relative">
                 <label for="inputFechaInicio" class="block text-sm font-semibold text-slate-700 mb-2">
                     Fecha Inicio <span class="text-red-500">*</span>
@@ -133,7 +133,7 @@
                            class="w-full rounded-xl border border-slate-300 bg-white pl-11 pr-4 py-2.5 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all text-slate-800 text-sm cursor-pointer">
                 </div>
             </div>
-            
+
             <div class="relative">
                 <label for="inputFechaFin" class="block text-sm font-semibold text-slate-700 mb-2">
                     Fecha Fin <span class="text-red-500">*</span>
@@ -246,9 +246,9 @@
                 </div>
             </div>
             <p class="text-xs text-slate-400 mt-0.5">Este texto se incluirá en el PDF y en el cuerpo del correo enviado al cliente.</p>
-            
-            <textarea id="inputConclusion" rows="4" 
-                      class="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all" 
+
+            <textarea id="inputConclusion" rows="4"
+                      class="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-800 focus:border-[#4fbfb4] focus:ring-4 focus:ring-[#4fbfb4]/15 focus:outline-none transition-all"
                       placeholder="Escribe aquí la conclusión general del consolidado..."></textarea>
 
             <div class="flex justify-end pt-4 mt-2">
@@ -280,7 +280,7 @@
                     .then(response => response.json())
                     .then(json => {
                         // Se esperan los resultados en formato [{id: 1, nombre: 'Cliente X'}, ...]
-                        callback(json.resultados || json); 
+                        callback(json.resultados || json);
                     }).catch(() => {
                         callback();
                     });
@@ -305,7 +305,7 @@
         // CONFIGURACIÓN E INICIALIZACIÓN DE FLATPICKR
         // ---------------------------------------------------------------
         let fpInicio, fpFin;
-    
+
         const configComun = {
             locale: "es",
             dateFormat: "Y-m-d",
@@ -313,7 +313,7 @@
             altFormat: "j \\de F, Y",
             disableMobile: "true"
         };
-    
+
         // Inicializar selector de fecha de inicio con validación cruzada
         fpInicio = flatpickr("#inputFechaInicio", {
             ...configComun,
@@ -321,7 +321,7 @@
                 fpFin.set("minDate", dateStr);
             }
         });
-    
+
         // Inicializar selector de fecha fin con validación cruzada
         fpFin = flatpickr("#inputFechaFin", {
             ...configComun,
@@ -329,14 +329,14 @@
                 fpInicio.set("maxDate", dateStr);
             }
         });
-    
+
         // ---------------------------------------------------------------
         // CONFIGURACIÓN DE ELEMENTOS DEL DOM Y CHART.JS
         // ---------------------------------------------------------------
         Chart.defaults.font.family = 'Plus Jakarta Sans, ui-sans-serif, system-ui';
         Chart.defaults.font.size = 11;
         Chart.defaults.color = '#64748b';
-    
+
         const selectCliente = document.getElementById('selectCliente');
         const inputInicio = document.getElementById('inputFechaInicio');
         const inputFin = document.getElementById('inputFechaFin');
@@ -345,22 +345,22 @@
         const panelResultados = document.getElementById('panelResultados');
         const buscarSpinner = document.getElementById('buscarSpinner');
         const mensajeVacio = document.getElementById('mensajeVacio');
-    
+
         let charts = {};
-    
+
         // ---------------------------------------------------------------
         // PRESETS DE RANGOS DE FECHA
         // ---------------------------------------------------------------
         function formatoISO(fecha) {
             return fecha.toISOString().split('T')[0];
         }
-    
+
         function calcularRango(preset) {
             const hoy = new Date();
             const anio = hoy.getFullYear();
             const mes = hoy.getMonth();
             let inicio, fin = hoy;
-    
+
             if (preset === 'mes') {
                 inicio = new Date(anio, mes, 1);
             } else if (preset === 'trimestre') {
@@ -373,29 +373,29 @@
             }
             return { inicio: formatoISO(inicio), fin: formatoISO(fin) };
         }
-    
+
         // Escuchador para los botones de presets de rangos
         document.querySelectorAll('.rk-preset-btn').forEach(boton => {
             boton.addEventListener('click', function(e) {
                 e.preventDefault();
-                
+
                 const preset = this.getAttribute('data-preset');
                 const rango = calcularRango(preset);
-    
+
                 // Limpiar restricciones temporales para evitar bloqueos mutuos
                 fpInicio.set("maxDate", null);
                 fpFin.set("minDate", null);
-    
+
                 // Setear fechas formateadas disparando los eventos internos
                 fpInicio.setDate(rango.inicio, true);
                 fpFin.setDate(rango.fin, true);
-                
+
                 // Re-aplicar validación dinámica posterior
                 fpFin.set("minDate", rango.inicio);
                 fpInicio.set("maxDate", rango.fin);
             });
         });
-    
+
         // ---------------------------------------------------------------
         // NOTIFICACIONES (TOAST)
         // ---------------------------------------------------------------
@@ -403,16 +403,16 @@
             const toast = document.getElementById('rkToast');
             const inner = document.getElementById('rkToastInner');
             const texto = document.getElementById('rkToastText');
-            
+
             if (!toast || !texto) return; // Evitar fallos si no se ha renderizado en el DOM
-            
+
             texto.textContent = mensaje;
             inner.className = 'rounded-xl px-5 py-3 shadow-lg text-sm font-semibold flex items-center gap-2 ' +
                 (tipo === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200');
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 4000);
         }
-    
+
         // ---------------------------------------------------------------
         // PROCESAMIENTO: BUSCAR / PREVIEW
         // ---------------------------------------------------------------
@@ -421,31 +421,31 @@
             // Obtenemos los valores desde el input original (que Flatpickr mantiene actualizado en segundo plano)
             const fechaInicio = inputInicio.value;
             const fechaFin = inputFin.value;
-    
+
             if (!clienteId || !fechaInicio || !fechaFin) {
                 mostrarToast('Selecciona un cliente y un rango de fechas completo.', 'error');
                 return;
             }
-    
+
             buscarSpinner.classList.remove('hidden');
             mensajeVacio.classList.add('hidden');
             panelResultados.classList.add('hidden');
-    
+
             try {
                 const params = new URLSearchParams({ cliente_id: clienteId, fecha_inicio: fechaInicio, fecha_fin: fechaFin });
                 const resp = await fetch(`/admin_roka/api/consolidado/preview/?${params.toString()}`);
                 const data = await resp.json();
-    
+
                 if (data.status !== 'success') {
                     mostrarToast(data.message || 'Error al consultar el consolidado.', 'error');
                     return;
                 }
-    
+
                 if (data.total_inspecciones === 0) {
                     mensajeVacio.classList.remove('hidden');
                     return;
                 }
-    
+
                 renderResultados(data);
                 panelResultados.classList.remove('hidden');
             } catch (err) {
@@ -454,13 +454,13 @@
                 buscarSpinner.classList.add('hidden');
             }
         });
-    
+
         function renderResultados(data) {
             document.getElementById('kpiTotalInspecciones').textContent = data.total_inspecciones;
             document.getElementById('kpiTotalEvidencias').textContent = data.total_evidencias;
             document.getElementById('kpiPromedio').textContent = data.promedio_general;
             document.getElementById('gaugeNeedle').style.transform = `rotate(${data.angulo_gauge}deg)`;
-    
+
             const tbody = document.getElementById('tablaInspecciones');
             tbody.innerHTML = '';
             data.inspecciones.forEach(i => {
@@ -473,19 +473,19 @@
                 `;
                 tbody.appendChild(tr);
             });
-    
+
             renderCharts(data);
         }
-    
+
         function destruirCharts() {
             Object.values(charts).forEach(c => c && c.destroy());
             charts = {};
         }
-    
+
         function renderCharts(data) {
             destruirCharts();
             const gridStyle = { color: '#f1f5f9' };
-    
+
             charts.evolucion = new Chart(document.getElementById('chartEvolucion'), {
                 type: 'line',
                 data: {
@@ -506,7 +506,7 @@
                     scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle }, x: { grid: { display: false } } }
                 }
             });
-    
+
             charts.calificacion = new Chart(document.getElementById('chartCalificacion'), {
                 type: 'bar',
                 data: {
@@ -524,7 +524,7 @@
                     scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle }, x: { grid: { display: false } } }
                 }
             });
-    
+
             charts.zonas = new Chart(document.getElementById('chartZonas'), {
                 type: 'bar',
                 data: {
@@ -543,7 +543,7 @@
                     scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: gridStyle }, y: { grid: { display: false } } }
                 }
             });
-    
+
             charts.enfoques = new Chart(document.getElementById('chartEnfoques'), {
                 type: 'doughnut',
                 data: {
@@ -561,7 +561,7 @@
                 }
             });
         }
-    
+
         // ---------------------------------------------------------------
         // SEGURIDAD Y ACCIÓN: GENERAR Y ENVIAR
         // ---------------------------------------------------------------
@@ -570,37 +570,48 @@
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
-    
+
         btnGenerar.addEventListener('click', async () => {
             const clienteId = selectCliente.value;
             const fechaInicio = inputInicio.value;
             const fechaFin = inputFin.value;
             const conclusion = document.getElementById('inputConclusion').value;
-    
+        
             btnGenerar.disabled = true;
             btnGenerar.classList.add('opacity-60');
-    
+        
             try {
                 const formData = new FormData();
                 formData.append('cliente_id', clienteId);
                 formData.append('fecha_inicio', fechaInicio);
                 formData.append('fecha_fin', fechaFin);
                 formData.append('conclusion_general', conclusion);
-    
+        
                 const resp = await fetch('/admin_roka/consolidado/generar/', {
                     method: 'POST',
-                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
                     body: formData
                 });
+        
                 const data = await resp.json();
-    
+        
                 if (data.status === 'success') {
                     mostrarToast(data.message, 'success');
                 } else {
                     mostrarToast(data.message || 'Error al generar el consolidado.', 'error');
                 }
+        
             } catch (err) {
+                console.error(err);
                 mostrarToast('No se pudo conectar con el servidor.', 'error');
+        
+            } finally {
+                // Restaurar botón
+                btnGenerar.disabled = false;
+                btnGenerar.classList.remove('opacity-60');
+            }
         });
     });
 
@@ -621,7 +632,7 @@
         reconocimiento.onresult = (event) => {
             const resultadoIndex = event.resultIndex;
             const textoDictado = event.results[resultadoIndex][0].transcript;
-            
+
             const textarea = document.getElementById(idCampoActivo);
             if (textarea) {
                 // MEJORA: Insertar en la posición del cursor (no siempre al final)
@@ -642,16 +653,16 @@
                 const espacioAntes = (startPos > 0 && !valOriginal.charAt(startPos - 1).match(/\s/)) ? " " : "";
                 const espacioDespues = (endPos < valOriginal.length && !valOriginal.charAt(endPos).match(/\s/)) ? " " : "";
 
-                textarea.value = valOriginal.substring(0, startPos) + 
-                                 espacioAntes + 
-                                 textoFinal + 
-                                 espacioDespues + 
+                textarea.value = valOriginal.substring(0, startPos) +
+                                 espacioAntes +
+                                 textoFinal +
+                                 espacioDespues +
                                  valOriginal.substring(endPos);
 
                 // Colocar el cursor justo después de la inserción
                 const nuevaPosCursor = startPos + espacioAntes.length + textoFinal.length;
                 textarea.selectionStart = textarea.selectionEnd = nuevaPosCursor;
-                
+
                 textarea.dispatchEvent(new Event('input'));
             }
         };
@@ -746,18 +757,18 @@
         const textarea = document.getElementById(idCampo);
         if (!textarea) return;
         const textoOriginal = textarea.value.trim();
-    
+
         if (!textoOriginal) {
             mostrarToast("El campo está vacío, escribe o dicta algo primero.", 'error');
             return;
         }
-    
+
         // Cambiar estado del botón a "Procesando"
         const boton = event.currentTarget;
         const textoOriginalBoton = boton.innerHTML;
         boton.disabled = true;
         boton.innerHTML = `⏳ Corrigiendo...`;
-    
+
         try {
             const response = await fetch('/reportador/api/corregir-texto/', {
                 method: 'POST',
@@ -772,14 +783,14 @@
                 },
                 body: JSON.stringify({ texto: textoOriginal })
             });
-    
+
             if (!response.ok) throw new Error('Error en el servidor');
-    
+
             const data = await response.json();
-            
+
             // Insertamos el texto corregido localmente por el backend
             textarea.value = data.textoCorregido;
-            
+
             // Lanzamos el evento input por si tienes contadores de caracteres activos
             textarea.dispatchEvent(new Event('input'));
 
@@ -790,7 +801,7 @@
             } else {
                 mostrarToast('✨ Tu texto no requiere correcciones. ¡Está excelente!', 'success');
             }
-    
+
         } catch (error) {
             console.error("Error:", error);
             mostrarToast("No se pudo realizar la corrección en este momento.", 'error');

@@ -1,5 +1,10 @@
 from django.db import models
 from django.conf import settings
+from roka.storage_backends import (EvidenciasStorage, PDFInspeccionesStorage,)
+import os
+import uuid
+from django.utils.text import slugify
+from datetime import datetime, date
 
 
 class Cliente(models.Model):
@@ -104,12 +109,117 @@ class InspeccionDetalle(models.Model):
 
 # Ajustado para que las evidencias dependan del bloque específico (Detalle) y no de la cabecera general
 def path_evidencias(instance, filename):
-    return f"inspecciones/{instance.detalle.inspeccion.id}/evidencias/{filename}"
+    """
+    Estructura:
+    evidencias/
+        cliente_900123456/
+            inspeccion_2026-07-17_125/
+                zonas-comunes/
+                    20260717_a8c4d19f2b.jpg
+    """
+    inspeccion = instance.detalle.inspeccion
+    cliente = inspeccion.cliente
+
+    extension = os.path.splitext(filename)[1].lower()
+
+    # Normalizar la fecha por si viene en memoria como str o como date/datetime
+    fecha_raw = inspeccion.fecha
+    if isinstance(fecha_raw, (date, datetime)):
+        fecha_obj = fecha_raw
+    elif isinstance(fecha_raw, str) and fecha_raw.strip():
+        try:
+            fecha_obj = datetime.strptime(fecha_raw.strip(), "%Y-%m-%d").date()
+        except ValueError:
+            fecha_obj = date.today()
+    else:
+        fecha_obj = date.today()
+
+    fecha_y2k = fecha_obj.strftime("%Y%m%d")
+    fecha_iso = fecha_obj.strftime("%Y-%m-%d")
+
+    nombre = (
+        f"{fecha_y2k}_"
+        f"{uuid.uuid4().hex[:10]}"
+        f"{extension}"
+    )
+
+    carpeta_concepto = slugify(instance.detalle.concepto or 'general')
+    carpeta_cliente = slugify(str(cliente.nit))
+
+    return (
+        f"cliente_{carpeta_cliente}/"
+        f"inspeccion_{fecha_iso}_{inspeccion.id}/"
+        f"{carpeta_concepto}/"
+        f"{nombre}"
+    )
+
 
 class InspeccionEvidencia(models.Model):
-    detalle = models.ForeignKey(InspeccionDetalle, on_delete=models.CASCADE, related_name="evidencias", null=True, blank=True)
-    archivo = models.FileField(upload_to=path_evidencias, verbose_name="Evidencia (Foto/Video)")
+    detalle = models.ForeignKey(
+        InspeccionDetalle,
+        on_delete=models.CASCADE,
+        related_name="evidencias",
+    )
+    archivo = models.FileField(
+        storage=EvidenciasStorage,
+        upload_to=path_evidencias,
+        max_length=255,
+        verbose_name="Evidencia (Foto/Video)",
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         verbose_name = "Evidencia de Inspección"
         verbose_name_plural = "Evidencias de Inspecciones"
+
+    def delete(self, *args, **kwargs):
+        # Borra el blob en R2 al eliminar el registro; el modelo por sí solo
+        # no elimina el archivo remoto, solo la fila en BD.
+        self.archivo.delete(save=False)
+        super().delete(*args, **kwargs)
+
+
+def pdf_inspeccion_path(instance, filename):
+    """
+    Estructura:
+
+    pdfs/
+        inspecciones/
+            cliente_900123456/
+                2026/
+                    2026-07-17_inspeccion_125.pdf
+    """
+
+    inspeccion = instance.inspeccion
+    cliente = inspeccion.cliente
+    carpeta_cliente = slugify(str(cliente.nit))
+
+    return (
+        f"cliente_{carpeta_cliente}/"
+        f"{inspeccion.fecha.year}/"
+        f"{inspeccion.fecha:%Y-%m-%d}_"
+        f"inspeccion_{inspeccion.id}.pdf"
+    )
+
+
+class PDFInspeccion(models.Model):
+    inspeccion = models.OneToOneField(
+        Inspeccion,
+        on_delete=models.CASCADE,
+        related_name="pdf",
+    )
+
+    archivo = models.FileField(
+        storage=PDFInspeccionesStorage,
+        upload_to=pdf_inspeccion_path,
+        max_length=255,
+    )
+    creado = models.DateTimeField(auto_now_add=True)
+    enviado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return f"PDF {self.inspeccion.id}"
+    
