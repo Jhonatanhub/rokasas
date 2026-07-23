@@ -42,21 +42,6 @@
         transform-origin: 100px 100px;
         transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .rk-toast {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-20px);
-        opacity: 0;
-        pointer-events: none;
-        transition: all 0.3s ease;
-        z-index: 100;
-        backdrop-filter: blur(8px);
-    }
-    .rk-toast.show {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-    }
     .rk-spinner {
         border: 3px solid #e2e8f0;
         border-top-color: var(--rk-blue);
@@ -65,9 +50,6 @@
         animation: rk-spin 0.7s linear infinite;
     }
     @keyframes rk-spin { to { transform: rotate(360deg); } }
-
-
-
 
     .flatpickr-calendar {
         border-radius: 1rem !important;
@@ -95,11 +77,8 @@
     }
 </style>
 
-<div id="rkToast" class="rk-toast">
-    <div class="rounded-xl px-5 py-3 shadow-lg text-sm font-semibold flex items-center gap-2" id="rkToastInner">
-        <span id="rkToastText"></span>
-    </div>
-</div>
+<div id="toast-backdrop" class="toast-backdrop"></div>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
 <div class="max-w-7xl mx-auto py-6 px-4 space-y-6">
 
@@ -265,6 +244,76 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 <script>
+    // ---------------------------------------------------------------
+    // NOTIFICACIONES (TOAST) - mismo diseño y markup que las otras plantillas
+    // ---------------------------------------------------------------
+    function mostrarToast(tipo, mensaje, duracion = null) {
+        const container = document.getElementById('toast-container');
+        const backdrop = document.getElementById('toast-backdrop');
+        if (!container) return;
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        if (duracion === null) {
+            duracion = tipo === 'success' ? 5500 : 6000;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${tipo}`;
+
+        const iconoExito = `<svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25 4.5-4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`;
+
+        const iconoError = `<svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`;
+
+        const titulo = tipo === 'success' ? '¡Listo!' : 'Ocurrió un error';
+        const icono = tipo === 'success' ? iconoExito : iconoError;
+
+        toast.innerHTML = `
+            <div class="toast-icon-wrap">${icono}</div>
+            <div class="toast-content">
+                <p class="toast-title">${titulo}</p>
+                <p class="toast-message">${mensaje}</p>
+            </div>
+            <button type="button" class="toast-close" aria-label="Cerrar">
+                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="toast-progress" style="animation-duration: ${duracion}ms"></div>
+        `;
+
+        container.appendChild(toast);
+
+        if (backdrop) {
+            backdrop.classList.add('toast-backdrop-show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        requestAnimationFrame(() => toast.classList.add('toast-show'));
+
+        const cerrar = () => {
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+                if (backdrop && container.children.length === 0) {
+                    backdrop.classList.remove('toast-backdrop-show');
+                    document.body.style.overflow = '';
+                }
+            }, { once: true });
+        };
+
+        const timer = setTimeout(cerrar, duracion);
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+            clearTimeout(timer);
+            cerrar();
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const tomSelectCliente = new TomSelect("#cliente_select", {
             valueField: 'id',
@@ -397,23 +446,6 @@
         });
 
         // ---------------------------------------------------------------
-        // NOTIFICACIONES (TOAST)
-        // ---------------------------------------------------------------
-        function mostrarToast(mensaje, tipo = 'success') {
-            const toast = document.getElementById('rkToast');
-            const inner = document.getElementById('rkToastInner');
-            const texto = document.getElementById('rkToastText');
-
-            if (!toast || !texto) return; // Evitar fallos si no se ha renderizado en el DOM
-
-            texto.textContent = mensaje;
-            inner.className = 'rounded-xl px-5 py-3 shadow-lg text-sm font-semibold flex items-center gap-2 ' +
-                (tipo === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200');
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 4000);
-        }
-
-        // ---------------------------------------------------------------
         // PROCESAMIENTO: BUSCAR / PREVIEW
         // ---------------------------------------------------------------
         btnBuscar.addEventListener('click', async () => {
@@ -423,7 +455,7 @@
             const fechaFin = inputFin.value;
 
             if (!clienteId || !fechaInicio || !fechaFin) {
-                mostrarToast('Selecciona un cliente y un rango de fechas completo.', 'error');
+                mostrarToast('error', 'Selecciona un cliente y un rango de fechas completo.');
                 return;
             }
 
@@ -437,7 +469,7 @@
                 const data = await resp.json();
 
                 if (data.status !== 'success') {
-                    mostrarToast(data.message || 'Error al consultar el consolidado.', 'error');
+                    mostrarToast('error', data.message || 'Error al consultar el consolidado.');
                     return;
                 }
 
@@ -449,7 +481,7 @@
                 renderResultados(data);
                 panelResultados.classList.remove('hidden');
             } catch (err) {
-                mostrarToast('No se pudo conectar con el servidor.', 'error');
+                mostrarToast('error', 'No se pudo conectar con el servidor.');
             } finally {
                 buscarSpinner.classList.add('hidden');
             }
@@ -563,6 +595,29 @@
         }
 
         // ---------------------------------------------------------------
+        // LIMPIEZA DEL FORMULARIO TRAS GUARDAR CORRECTAMENTE
+        // ---------------------------------------------------------------
+        function limpiarFormularioConsolidado() {
+            // Cliente: limpiamos el TomSelect y el input oculto
+            tomSelectCliente.clear(true);
+            selectCliente.value = '';
+
+            // Fechas: limpiamos flatpickr (esto también limpia el input visible/alt)
+            fpInicio.clear();
+            fpFin.clear();
+            fpFin.set("minDate", null);
+            fpInicio.set("maxDate", null);
+
+            // Conclusión general
+            document.getElementById('inputConclusion').value = '';
+
+            // Ocultamos el panel de resultados y cualquier mensaje residual
+            panelResultados.classList.add('hidden');
+            mensajeVacio.classList.add('hidden');
+            destruirCharts();
+        }
+
+        // ---------------------------------------------------------------
         // SEGURIDAD Y ACCIÓN: GENERAR Y ENVIAR
         // ---------------------------------------------------------------
         function getCookie(name) {
@@ -598,14 +653,15 @@
                 const data = await resp.json();
         
                 if (data.status === 'success') {
-                    mostrarToast(data.message, 'success');
+                    mostrarToast('success', data.message);
+                    limpiarFormularioConsolidado();
                 } else {
-                    mostrarToast(data.message || 'Error al generar el consolidado.', 'error');
+                    mostrarToast('error', data.message || 'Error al generar el consolidado.');
                 }
         
             } catch (err) {
                 console.error(err);
-                mostrarToast('No se pudo conectar con el servidor.', 'error');
+                mostrarToast('error', 'No se pudo conectar con el servidor.');
         
             } finally {
                 // Restaurar botón
@@ -619,13 +675,17 @@
     let reconocimiento = null;
     let idCampoActivo = null;
     let fallbackRestartTimeout = null;
+    let detencionManual = false; // distingue "usuario detuvo" de "se cortó solo"
+
+    // En Android, continuous=true no dispara onresult de forma confiable.
+    const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (SpeechRecognition) {
         reconocimiento = new SpeechRecognition();
         reconocimiento.lang = 'es-ES'; // Configurado para español
-        reconocimiento.continuous = true; // Permite pausas largas sin cortarse
+        reconocimiento.continuous = !esMovil; // FIX: en móvil forzamos false
         reconocimiento.interimResults = false; // Solo devuelve texto definitivo
 
         // Evento cuando detecta texto hablado
@@ -667,12 +727,19 @@
             }
         };
 
-        // Manejo del cierre inesperado o fin del dictado (por pausas o silencio prolongado)
+        // Manejo del cierre inesperado o fin del dictado
         reconocimiento.onend = () => {
-            // Si idCampoActivo sigue configurado, significa que se cortó por silencio involuntario
+            // Si el usuario detuvo manualmente, no reiniciamos bajo ninguna circunstancia
+            if (detencionManual) {
+                detencionManual = false;
+                return;
+            }
+
+            // Si idCampoActivo sigue configurado, significa que se cortó solo
+            // (silencio, o en móvil porque continuous=false termina tras cada frase) -> relanzamos
             if (idCampoActivo) {
                 fallbackRestartTimeout = setTimeout(() => {
-                    if (idCampoActivo) {
+                    if (idCampoActivo && !detencionManual) {
                         try {
                             reconocimiento.start();
                         } catch (e) {
@@ -680,29 +747,48 @@
                             idCampoActivo = null;
                         }
                     }
-                }, 400);
+                }, esMovil ? 150 : 400); // en móvil el reinicio debe ser casi inmediato
             }
         };
 
         reconocimiento.onerror = (event) => {
             console.error("Error de reconocimiento de voz:", event.error);
             if (event.error === 'not-allowed') {
-                mostrarToast('Se requiere permiso del micrófono para dictar.', 'error');
+                mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
                 if (idCampoActivo) {
                     const idCampo = idCampoActivo;
                     idCampoActivo = null;
                     cambiarEstiloBotón(idCampo, false);
                 }
             }
+            // 'no-speech' y 'aborted' son normales entre frases en móvil, no mostramos nada;
+            // onend se encarga del reinicio.
         };
     } else {
         console.warn("Este navegador no soporta el reconocimiento de voz nativo.");
     }
 
+    // Pide el permiso de micrófono explícitamente ANTES de llamar a start().
+    // Evita el "primer clic falla, segundo clic no captura nada": ya no arrancamos
+    // el reconocimiento mientras el permiso sigue en negociación.
+    async function asegurarPermisoMicrofono() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            return true; // no podemos verificar, dejamos que start() lo intente igual
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop()); // solo pedíamos el permiso
+            return true;
+        } catch (e) {
+            mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
+            return false;
+        }
+    }
+
     // Función para activar / desactivar el dictado
-    function toggleDictado(idCampo) {
+    async function toggleDictado(idCampo) {
         if (!reconocimiento) {
-            mostrarToast("Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.", 'error');
+            mostrarToast('error', "Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
             return;
         }
 
@@ -710,27 +796,32 @@
 
         // Si ya está escuchando el mismo campo, lo detiene manualmente
         if (idCampoActivo === idCampo) {
+            detencionManual = true;
             const anteriorCampo = idCampoActivo;
             idCampoActivo = null;
             reconocimiento.stop();
             cambiarEstiloBotón(anteriorCampo, false);
-            mostrarToast('Micrófono desactivado.', 'success');
-            return;
+            return; // sin toast
         }
 
         // Si está escuchando otro campo, detiene el anterior primero
         if (idCampoActivo) {
+            detencionManual = true;
             const anteriorCampo = idCampoActivo;
             reconocimiento.stop();
             cambiarEstiloBotón(anteriorCampo, false);
         }
 
+        const permisoOk = await asegurarPermisoMicrofono();
+        if (!permisoOk) return;
+
         // Activa el nuevo campo
+        detencionManual = false;
         idCampoActivo = idCampo;
         cambiarEstiloBotón(idCampo, true);
         try {
             reconocimiento.start();
-            mostrarToast('Micrófono activo. Dicta ahora.', 'success');
+            // sin toast: el botón cambiando a "Grabando..." ya es la señal visual
         } catch (e) {
             console.warn("Speech recognition ya iniciado o fallido:", e);
         }
@@ -759,7 +850,7 @@
         const textoOriginal = textarea.value.trim();
 
         if (!textoOriginal) {
-            mostrarToast("El campo está vacío, escribe o dicta algo primero.", 'error');
+            mostrarToast('error', "El campo está vacío, escribe o dicta algo primero.");
             return;
         }
 
@@ -794,17 +885,9 @@
             // Lanzamos el evento input por si tienes contadores de caracteres activos
             textarea.dispatchEvent(new Event('input'));
 
-            // Notificación sobre los resultados de la corrección
-            const errores = data.erroresEncontrados || 0;
-            if (errores > 0) {
-                mostrarToast(`✨ Texto corregido. Se realizaron ${errores} correcciones.`, 'success');
-            } else {
-                mostrarToast('✨ Tu texto no requiere correcciones. ¡Está excelente!', 'success');
-            }
-
         } catch (error) {
             console.error("Error:", error);
-            mostrarToast("No se pudo realizar la corrección en este momento.", 'error');
+            mostrarToast('error', "No se pudo realizar la corrección en este momento.");
         } finally {
             // Restaurar el botón
             boton.disabled = false;

@@ -195,13 +195,13 @@ LOGIN_REDIRECT_URL = 'inicio'
 
 LOGOUT_REDIRECT_URL = 'login'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'mail.sao6.com.co'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'jhonatan.usuga@sao6.com.co'
-EMAIL_HOST_PASSWORD = 'jhonatan1032010812*'
-DEFAULT_FROM_EMAIL = f"Reportes Empresa <{EMAIL_HOST_USER}>"
+
+
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 
 USE_CLOUDFLARE_R2 = os.getenv("USE_CLOUDFLARE_R2", "False") == "True"
