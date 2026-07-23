@@ -10,6 +10,9 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Marcar directorio como seguro en Git
+        run: git config --global --add safe.directory /var/www/rokasas
+
       - name: Actualizar código
         run: |
           cd /var/www/rokasas
