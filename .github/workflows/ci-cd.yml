@@ -51,5 +51,5 @@ jobs:
 
       - name: Reiniciar PM2 y Apache
         run: |
-          PM2_HOME=/home/desarrollo/.pm2 /usr/bin/pm2 restart rokasas
+          sudo -u desarrollo /usr/bin/pm2 restart rokasas
           sudo systemctl reload httpd
