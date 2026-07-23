@@ -196,7 +196,7 @@ LOGIN_REDIRECT_URL = 'inicio'
 LOGOUT_REDIRECT_URL = 'login'
 
 
-
+#CREDENCIALES CORREO
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
@@ -204,6 +204,8 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 
+
+#CONEXIÓN CLOUDFLARE
 USE_CLOUDFLARE_R2 = os.getenv("USE_CLOUDFLARE_R2", "False") == "True"
 
 if USE_CLOUDFLARE_R2:
