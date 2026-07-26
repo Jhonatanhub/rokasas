@@ -386,182 +386,177 @@
 <script>
     //---------------      EVIDENCIAS       ---------------------------------
     let archivosEvidencia = [];
-    let formulario, mediaModal, modalImage, modalPlayer, modalContentWrapper, modalVideoContainer, modalLoader;
-    const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
-    const IMAGE_MAX_WIDTH = 1200;
-    const IMAGE_QUALITY = 0.75;
-    let reconocimiento = null;
-    let idCampoActivo = null;
-    let fallbackRestartTimeout = null;
-    let detencionManual = false; // NUEVO: distingue "usuario detuvo" de "se cortó solo"
-     
-    // Detección simple de móvil: en Android, continuous=true no entrega resultados de forma confiable
-    const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-     
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-     
-    if (SpeechRecognition) {
-        reconocimiento = new SpeechRecognition();
-        reconocimiento.lang = 'es-ES';
-        // FIX: en móvil forzamos continuous=false y lo relanzamos nosotros mismos en onend.
-        // continuous=true en Chrome Android no dispara onresult de forma confiable.
-        reconocimiento.continuous = !esMovil;
-        reconocimiento.interimResults = false;
-     
-        reconocimiento.onresult = (event) => {
-            const resultadoIndex = event.resultIndex;
-            const textoDictado = event.results[resultadoIndex][0].transcript;
-     
-            const textarea = document.getElementById(idCampoActivo);
-            if (textarea) {
-                const startPos = textarea.selectionStart;
-                const endPos = textarea.selectionEnd;
-                const valOriginal = textarea.value;
-     
-                let textoFinal = textoDictado.trim();
-                const textoPrevio = valOriginal.substring(0, startPos).trim();
-                if (startPos === 0 || textoPrevio.endsWith('.') || textoPrevio === '') {
-                    textoFinal = textoFinal.charAt(0).toUpperCase() + textoFinal.slice(1);
-                } else {
-                    textoFinal = textoFinal.charAt(0).toLowerCase() + textoFinal.slice(1);
-                }
-     
-                const espacioAntes = (startPos > 0 && !valOriginal.charAt(startPos - 1).match(/\s/)) ? " " : "";
-                const espacioDespues = (endPos < valOriginal.length && !valOriginal.charAt(endPos).match(/\s/)) ? " " : "";
-     
-                textarea.value = valOriginal.substring(0, startPos) +
-                                 espacioAntes +
-                                 textoFinal +
-                                 espacioDespues +
-                                 valOriginal.substring(endPos);
-     
-                const nuevaPosCursor = startPos + espacioAntes.length + textoFinal.length;
-                textarea.selectionStart = textarea.selectionEnd = nuevaPosCursor;
-     
-                textarea.dispatchEvent(new Event('input'));
+let formulario, mediaModal, modalImage, modalPlayer, modalContentWrapper, modalVideoContainer, modalLoader;
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+const IMAGE_MAX_WIDTH = 1200;
+const IMAGE_QUALITY = 0.75;
+let reconocimiento = null;
+let idCampoActivo = null;
+let fallbackRestartTimeout = null;
+let detencionManual = false; // Distingue "usuario detuvo" de "se cortó solo"
+
+// Detección simple de móvil: en Android, continuous=true no entrega resultados de forma confiable
+const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+    reconocimiento = new SpeechRecognition();
+    reconocimiento.lang = 'es-ES';
+    // En móvil forzamos continuous=false y lo relanzamos nosotros mismos en onend.
+    reconocimiento.continuous = !esMovil;
+    reconocimiento.interimResults = false;
+
+    reconocimiento.onresult = (event) => {
+        const resultadoIndex = event.resultIndex;
+        const textoDictado = event.results[resultadoIndex][0].transcript;
+
+        const textarea = document.getElementById(idCampoActivo);
+        if (textarea) {
+            const startPos = textarea.selectionStart;
+            const endPos = textarea.selectionEnd;
+            const valOriginal = textarea.value;
+
+            let textoFinal = textoDictado.trim();
+            const textoPrevio = valOriginal.substring(0, startPos).trim();
+            if (startPos === 0 || textoPrevio.endsWith('.') || textoPrevio === '') {
+                textoFinal = textoFinal.charAt(0).toUpperCase() + textoFinal.slice(1);
+            } else {
+                textoFinal = textoFinal.charAt(0).toLowerCase() + textoFinal.slice(1);
             }
-        };
-     
-        reconocimiento.onend = () => {
-            // Si el usuario detuvo manualmente, no reiniciamos bajo ninguna circunstancia
-            if (detencionManual) {
-                detencionManual = false;
-                return;
-            }
-     
-            // Si sigue "activo" un campo, significa que se cortó solo (por silencio,
-            // o porque en móvil continuous=false termina tras cada frase) -> relanzamos
-            if (idCampoActivo) {
-                fallbackRestartTimeout = setTimeout(() => {
-                    if (idCampoActivo && !detencionManual) {
-                        try {
-                            reconocimiento.start();
-                        } catch (e) {
-                            cambiarEstiloBotón(idCampoActivo, false);
-                            idCampoActivo = null;
-                        }
-                    }
-                }, esMovil ? 150 : 400); // en móvil el reinicio debe ser casi inmediato
-            }
-        };
-     
-        reconocimiento.onerror = (event) => {
-            console.error("Error de reconocimiento de voz:", event.error);
-            if (event.error === 'not-allowed') {
-                mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
-                if (idCampoActivo) {
-                    const idCampo = idCampoActivo;
-                    idCampoActivo = null;
-                    cambiarEstiloBotón(idCampo, false);
-                }
-            }
-            // 'no-speech' y 'aborted' son normales en móvil entre frases, no mostramos nada,
-            // dejamos que onend se encargue del reinicio.
-        };
-    } else {
-        console.warn("Este navegador no soporta el reconocimiento de voz nativo.");
-    }
-     
-    // FIX: pedimos el permiso de micrófono explícitamente ANTES de llamar a start().
-    // Esto evita el "primer clic falla, segundo clic no captura nada": ya no arrancamos
-    // el reconocimiento mientras el permiso sigue en negociación.
-    async function asegurarPermisoMicrofono() {
-        // Si la API de permisos no está disponible, dejamos pasar a SpeechRecognition directo
-        if (!navigator.permissions || !navigator.permissions.query) {
-            return true;
+
+            const espacioAntes = (startPos > 0 && !valOriginal.charAt(startPos - 1).match(/\s/)) ? " " : "";
+            const espacioDespues = (endPos < valOriginal.length && !valOriginal.charAt(endPos).match(/\s/)) ? " " : "";
+
+            textarea.value = valOriginal.substring(0, startPos) +
+                             espacioAntes +
+                             textoFinal +
+                             espacioDespues +
+                             valOriginal.substring(endPos);
+
+            const nuevaPosCursor = startPos + espacioAntes.length + textoFinal.length;
+            textarea.selectionStart = textarea.selectionEnd = nuevaPosCursor;
+
+            textarea.dispatchEvent(new Event('input'));
         }
-    
-        try {
-            const estadoPermiso = await navigator.permissions.query({ name: 'microphone' });
-    
-            // Si el usuario ya lo bloqueó explícitamente en el navegador
-            if (estadoPermiso.state === 'denied') {
-                mostrarToast('error', 'El micrófono está bloqueado en el navegador. Por favor habilítalo en la configuración del sitio.');
-                return false;
-            }
-    
-            // Si está en 'granted' o 'prompt', permitimos que continúe
-            return true;
-        } catch (e) {
-            // Ante cualquier incompatibilidad con la consulta, devolvemos true y dejamos que el reconocedor maneje el evento
-            return true;
-        }
-    }
-     
-    async function toggleDictado(idCampo) {
-        if (!reconocimiento) {
-            mostrarToast('error', "Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
+    };
+
+    reconocimiento.onend = () => {
+        // Si el usuario detuvo manualmente, no reiniciamos
+        if (detencionManual) {
+            detencionManual = false;
             return;
         }
-     
-        clearTimeout(fallbackRestartTimeout);
-     
-        // Si ya está escuchando el mismo campo, lo detiene manualmente
-        if (idCampoActivo === idCampo) {
-            detencionManual = true;
-            const anteriorCampo = idCampoActivo;
-            idCampoActivo = null;
-            reconocimiento.stop();
-            cambiarEstiloBotón(anteriorCampo, false);
-            return; // sin toast
-        }
-     
-        // Si está escuchando otro campo, detiene el anterior primero
+
+        // Si sigue "activo" un campo, significa que se cortó solo -> relanzamos
         if (idCampoActivo) {
-            detencionManual = true;
-            const anteriorCampo = idCampoActivo;
-            reconocimiento.stop();
-            cambiarEstiloBotón(anteriorCampo, false);
+            fallbackRestartTimeout = setTimeout(() => {
+                if (idCampoActivo && !detencionManual) {
+                    try {
+                        reconocimiento.start();
+                    } catch (e) {
+                        cambiarEstiloBotón(idCampoActivo, false);
+                        idCampoActivo = null;
+                    }
+                }
+            }, esMovil ? 150 : 400); // en móvil el reinicio debe ser casi inmediato
         }
-     
-        const permisoOk = await asegurarPermisoMicrofono();
-        if (!permisoOk) return;
-     
-        detencionManual = false;
-        idCampoActivo = idCampo;
-        cambiarEstiloBotón(idCampo, true);
-        try {
-            reconocimiento.start();
-            // sin toast: el botón cambiando a "Grabando..." ya es la señal visual
-        } catch (e) {
-            console.warn("Speech recognition ya iniciado o fallido:", e);
+    };
+
+    reconocimiento.onerror = (event) => {
+        console.error("Error de reconocimiento de voz:", event.error);
+        if (event.error === 'not-allowed') {
+            mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
+            if (idCampoActivo) {
+                const idCampo = idCampoActivo;
+                idCampoActivo = null;
+                cambiarEstiloBotón(idCampo, false);
+            }
         }
+    };
+} else {
+    console.warn("Este navegador no soporta el reconocimiento de voz nativo.");
+}
+
+// NUEVA IMPLEMENTACIÓN: Solicita directamente la alerta emergente nativa del navegador.
+async function asegurarPermisoMicrofono() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return true; // Si no existe la API de audio, permitimos continuar directamente al reconocedor
     }
-     
-    function cambiarEstiloBotón(idCampo, estaEscuchando) {
-        const btn = document.getElementById(`btn-voz-${idCampo}`);
-        if (!btn) return;
-     
-        if (estaEscuchando) {
-            btn.classList.remove('bg-slate-100', 'text-slate-600');
-            btn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
-            btn.querySelector('span').innerText = 'Grabando...';
+
+    try {
+        // Dispara la ventana emergente nativa de "Permitir / Bloquear" en móviles y PC
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Liberar el stream inmediatamente para que el reconocimiento pueda tomar el micrófono
+        stream.getTracks().forEach(track => track.stop());
+        return true;
+    } catch (error) {
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            mostrarToast('error', 'El micrófono está bloqueado. Selecciona "Permitir" cuando el navegador te pida el permiso.');
         } else {
-            btn.classList.add('bg-slate-100', 'text-slate-600');
-            btn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-            btn.querySelector('span').innerText = 'Dictar';
+            console.error('Error al solicitar micrófono:', error);
+            mostrarToast('error', 'No se pudo acceder al micrófono del dispositivo.');
         }
+        return false;
     }
+}
+
+async function toggleDictado(idCampo) {
+    if (!reconocimiento) {
+        mostrarToast('error', "Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
+        return;
+    }
+
+    clearTimeout(fallbackRestartTimeout);
+
+    // Si ya está escuchando el mismo campo, lo detiene manualmente
+    if (idCampoActivo === idCampo) {
+        detencionManual = true;
+        const anteriorCampo = idCampoActivo;
+        idCampoActivo = null;
+        reconocimiento.stop();
+        cambiarEstiloBotón(anteriorCampo, false);
+        return;
+    }
+
+    // Si está escuchando otro campo, detiene el anterior primero
+    if (idCampoActivo) {
+        detencionManual = true;
+        const anteriorCampo = idCampoActivo;
+        reconocimiento.stop();
+        cambiarEstiloBotón(anteriorCampo, false);
+    }
+
+    // Dispara el diálogo de permiso si no ha sido otorgado aún
+    const permisoOk = await asegurarPermisoMicrofono();
+    if (!permisoOk) return;
+
+    detencionManual = false;
+    idCampoActivo = idCampo;
+    cambiarEstiloBotón(idCampo, true);
+
+    try {
+        reconocimiento.start();
+    } catch (e) {
+        console.warn("Speech recognition ya iniciado o fallido:", e);
+    }
+}
+
+function cambiarEstiloBotón(idCampo, estaEscuchando) {
+    const btn = document.getElementById(`btn-voz-${idCampo}`);
+    if (!btn) return;
+
+    if (estaEscuchando) {
+        btn.classList.remove('bg-slate-100', 'text-slate-600');
+        btn.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+        btn.querySelector('span').innerText = 'Grabando...';
+    } else {
+        btn.classList.add('bg-slate-100', 'text-slate-600');
+        btn.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+        btn.querySelector('span').innerText = 'Dictar';
+    }
+}
      
     // --- FUNCIÓN DE CORRECCIÓN DE ORTOGRAFÍA ---
     async function corregirTexto(idCampo) {
