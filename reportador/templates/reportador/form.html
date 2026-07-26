@@ -480,23 +480,47 @@ if (SpeechRecognition) {
 
 // NUEVA IMPLEMENTACIÓN: Solicita directamente la alerta emergente nativa del navegador.
 async function asegurarPermisoMicrofono() {
+    // getUserMedia SOLO funciona en HTTPS o localhost/127.0.0.1.
+    // Si esto es false, el navegador bloquea el micrófono sin ni siquiera
+    // mostrar el diálogo de permiso, sin importar lo que el usuario haga.
+    if (!window.isSecureContext) {
+        mostrarToast('error', 'El dictado por voz requiere HTTPS. Estás en una conexión no segura (http), por eso el navegador bloquea el micrófono automáticamente sin preguntar.');
+        console.warn('isSecureContext=false. Origen actual:', window.location.origin);
+        return false;
+    }
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return true; // Si no existe la API de audio, permitimos continuar directamente al reconocedor
+        return true; // Sin API de audio disponible, dejamos pasar al reconocedor nativo
+    }
+
+    // Si el navegador soporta la Permissions API, revisamos el estado ANTES
+    // de intentar el getUserMedia, para dar un mensaje más preciso.
+    if (navigator.permissions && navigator.permissions.query) {
+        try {
+            const estado = await navigator.permissions.query({ name: 'microphone' });
+            if (estado.state === 'denied') {
+                mostrarToast('error', 'El micrófono quedó bloqueado permanentemente para este sitio. El navegador ya no va a volver a preguntar solo: entra al ícono de candado/info junto a la URL y cambia el permiso de Micrófono a "Permitir" manualmente.');
+                return false;
+            }
+        } catch (e) {
+            // Safari/iOS no soporta query('microphone'); seguimos con el flujo normal
+        }
     }
 
     try {
-        // Dispara la ventana emergente nativa de "Permitir / Bloquear" en móviles y PC
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // Liberar el stream inmediatamente para que el reconocimiento pueda tomar el micrófono
         stream.getTracks().forEach(track => track.stop());
         return true;
     } catch (error) {
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
             mostrarToast('error', 'El micrófono está bloqueado. Selecciona "Permitir" cuando el navegador te pida el permiso.');
+        } else if (error.name === 'NotFoundError') {
+            mostrarToast('error', 'No se detectó ningún micrófono en este dispositivo.');
+        } else if (error.name === 'NotReadableError') {
+            mostrarToast('error', 'El micrófono está siendo usado por otra aplicación o pestaña.');
         } else {
             console.error('Error al solicitar micrófono:', error);
-            mostrarToast('error', 'No se pudo acceder al micrófono del dispositivo.');
+            mostrarToast('error', `No se pudo acceder al micrófono (${error.name}).`);
         }
         return false;
     }
