@@ -486,16 +486,25 @@
     // Esto evita el "primer clic falla, segundo clic no captura nada": ya no arrancamos
     // el reconocimiento mientras el permiso sigue en negociación.
     async function asegurarPermisoMicrofono() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            return true; // no podemos verificar, dejamos que start() lo intente igual
+        // Si la API de permisos no está disponible, dejamos pasar a SpeechRecognition directo
+        if (!navigator.permissions || !navigator.permissions.query) {
+            return true;
         }
+    
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop()); // solo pedíamos el permiso
+            const estadoPermiso = await navigator.permissions.query({ name: 'microphone' });
+    
+            // Si el usuario ya lo bloqueó explícitamente en el navegador
+            if (estadoPermiso.state === 'denied') {
+                mostrarToast('error', 'El micrófono está bloqueado en el navegador. Por favor habilítalo en la configuración del sitio.');
+                return false;
+            }
+    
+            // Si está en 'granted' o 'prompt', permitimos que continúe
             return true;
         } catch (e) {
-            mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
-            return false;
+            // Ante cualquier incompatibilidad con la consulta, devolvemos true y dejamos que el reconocedor maneje el evento
+            return true;
         }
     }
      
