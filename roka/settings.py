@@ -83,6 +83,7 @@ if ENABLE_BROWSER_RELOAD:
     INSTALLED_APPS.append('django_browser_reload')
 
 MIDDLEWARE = [
+    'roka.middleware.PermissionsPolicyMiddleware',  # Permite el micrófono en móvil y escritorio
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

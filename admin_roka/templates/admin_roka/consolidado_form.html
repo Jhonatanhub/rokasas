@@ -753,40 +753,27 @@
 
         reconocimiento.onerror = (event) => {
             console.error("Error de reconocimiento de voz:", event.error);
-            if (event.error === 'not-allowed') {
-                mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
+            if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+                mostrarToast('error', 'Micrófono bloqueado. Toca el ícono de candado o de ajustes en la barra de dirección de tu navegador, busca "Micrófono" y cámbialo a "Permitir". Luego recarga la página.');
                 if (idCampoActivo) {
                     const idCampo = idCampoActivo;
                     idCampoActivo = null;
                     cambiarEstiloBotón(idCampo, false);
                 }
             }
-            // 'no-speech' y 'aborted' son normales entre frases en móvil, no mostramos nada;
-            // onend se encarga del reinicio.
+            // 'no-speech' y 'aborted' son normales entre frases en móvil;
+            // onend se encarga del reinicio automático.
         };
     } else {
         console.warn("Este navegador no soporta el reconocimiento de voz nativo.");
     }
 
-    // Pide el permiso de micrófono explícitamente ANTES de llamar a start().
-    // Evita el "primer clic falla, segundo clic no captura nada": ya no arrancamos
-    // el reconocimiento mientras el permiso sigue en negociación.
-    async function asegurarPermisoMicrofono() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            return true; // no podemos verificar, dejamos que start() lo intente igual
-        }
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop()); // solo pedíamos el permiso
-            return true;
-        } catch (e) {
-            mostrarToast('error', 'Se requiere permiso del micrófono para dictar.');
-            return false;
-        }
-    }
-
-    // Función para activar / desactivar el dictado
-    async function toggleDictado(idCampo) {
+    // Función para activar / desactivar el dictado.
+    // IMPORTANTE: Llama a reconocimiento.start() directamente desde el evento de clic,
+    // sin pasar por un await/Promise intermedia. Esto mantiene el "contexto de gesto
+    // del usuario" que los navegadores (especialmente en móvil) requieren para
+    // mostrar el diálogo de permiso del micrófono.
+    function toggleDictado(idCampo) {
         if (!reconocimiento) {
             mostrarToast('error', "Tu navegador no soporta dictado por voz. Te sugerimos Google Chrome o Edge.");
             return;
@@ -812,10 +799,8 @@
             cambiarEstiloBotón(anteriorCampo, false);
         }
 
-        const permisoOk = await asegurarPermisoMicrofono();
-        if (!permisoOk) return;
-
-        // Activa el nuevo campo
+        // Activa el nuevo campo y arranca el reconocimiento directamente.
+        // El navegador mostrará el diálogo de permiso si es la primera vez.
         detencionManual = false;
         idCampoActivo = idCampo;
         cambiarEstiloBotón(idCampo, true);
@@ -824,6 +809,8 @@
             // sin toast: el botón cambiando a "Grabando..." ya es la señal visual
         } catch (e) {
             console.warn("Speech recognition ya iniciado o fallido:", e);
+            cambiarEstiloBotón(idCampo, false);
+            idCampoActivo = null;
         }
     }
 
